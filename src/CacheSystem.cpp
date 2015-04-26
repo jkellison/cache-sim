@@ -550,7 +550,7 @@ int BasicCache::Write(unsigned long address, int numbytes, int isDirty)
 		}
 
 		//It's not in the cache. We need to check the available spaces for an opening.
-		int index_local = index;
+		index_local = index;
 		for (int i = 0; i < assoc; i++)
 		{
 			if (valid_array[index_local] == 0)
@@ -692,15 +692,15 @@ int BasicCache::getAssoc()
 {
 	return assoc;
 }
-
-BasicCache::BasicCache()
+/*
+BasicCache::basicCache()
 {
 	delete tag_array;
 	delete valid_array;
 	delete dirty_array;
 	delete LRU_array;
 }
-
+*/
 
 ///////////////////////
 //Cache system data functions

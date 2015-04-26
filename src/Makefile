@@ -1,16 +1,16 @@
 IDIR =../include
 CC=g++
-CFLAGS=-I$(IDIR)
+CFLAGS=-I$(IDIR) -std=c++11
 
 ODIR=obj
 LDIR =../lib
 
 LIBS=-lm
 
-_DEPS = cacheSim.h
+_DEPS = cacheSim.h CacheSystem.h
 DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
 
-_OBJ = cacheSim.o 
+_OBJ = cacheSim.o CacheSystem.o
 OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 
 
