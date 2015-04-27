@@ -31,7 +31,7 @@ CacheSystem::CacheSystem(int L1_size, int L1_assoc_val, int L1_block_size_val, i
 	L2_transfer_time = L2_transfer_time_val;
 	L2_bus_width = L2_bus_width_val;
 }
-
+//I know it's messy, but repeating the clean and flush check makes keeping track of cycles easier
 int CacheSystem::Execute(char inst, unsigned long long address, int numbytes)
 {
 	int exec_time = 0;
@@ -40,24 +40,49 @@ int CacheSystem::Execute(char inst, unsigned long long address, int numbytes)
 	if (inst == 'R') //Data Read
 	{
 		exec_time = Read(address, numbytes);
+		Rrefs++;
+		//Clean the caches/check the caches for items that need to be evicted to the next level.
+		exec_time = exec_time + Clean(); //later
+
+		instruction_count = instruction_count + 1;
+		if ((instruction_count % 380000) == 0)
+		{
+			exec_time = exec_time + flush();
+		}
+		
+		Rcycles += exec_time;
 	}
 	if (inst == 'I') //Instruction read
 	{
 		exec_time = InstRead(address, numbytes); //could probably use normal read(), but ehhhhhh
+		Irefs++;
+		//Clean the caches/check the caches for items that need to be evicted to the next level.
+		exec_time = exec_time + Clean(); //later
+
+		instruction_count = instruction_count + 1;
+		if ((instruction_count % 380000) == 0)
+		{
+			exec_time = exec_time + flush();
+		}
+
+		Icycles += exec_time;
 	}
 	if (inst == 'W') //Write
 	{
 		exec_time = Write(address, numbytes);
+		Wrefs++;
+		//Clean the caches/check the caches for items that need to be evicted to the next level.
+		exec_time = exec_time + Clean(); //later
+
+		instruction_count = instruction_count + 1;
+		if ((instruction_count % 380000) == 0)
+		{
+			exec_time = exec_time + flush();
+		}
+
+		Wcycles += exec_time;
 	}
 
-	//Clean the caches/check the caches for items that need to be evicted to the next level.
-	exec_time = exec_time + Clean(); //later
-
-	instruction_count = instruction_count + 1;
-	if ((instruction_count % 380000) == 0)
-	{
-		exec_time = exec_time + flush();
-	}
 	return exec_time;
 }
 
@@ -751,6 +776,36 @@ unsigned long CacheSystem::L1D_Kickouts_Flush()
 unsigned long CacheSystem::L1D_Transfers()
 {
 	return L1D.transfers;
+}
+
+int CacheSystem::getRrefs()
+{
+	return Rrefs;
+}
+
+int CacheSystem::getWrefs()
+{
+	return Wrefs;
+}
+
+int CacheSystem::getIrefs()
+{
+	return Irefs;
+}
+
+int CacheSystem::getRcycles()
+{
+	return Rcycles;
+}
+
+int CacheSystem::getWcycles()
+{
+	return Wcycles;
+}
+
+int CacheSystem::getIcycles()
+{
+	return Icycles;
 }
 
 ////////////////

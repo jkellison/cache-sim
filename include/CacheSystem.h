@@ -91,6 +91,14 @@ class CacheSystem
 		int GetL2Cost();
 		int GetMMCost();
 
+		int getRrefs();
+		int getWrefs();
+		int getIrefs();
+	
+		int getRcycles();
+		int getWcycles();
+		int getIcycles();
+
 		unsigned long L1D_Hits();
 		unsigned long L1D_Misses();
 		unsigned long L1D_Kickouts();
@@ -130,6 +138,15 @@ class CacheSystem
 		int mem_chunksize = 8;	//Width of the bus interface to memory, in bytes
 
 		int instruction_count = 0;
+
+		int Rrefs = 0;
+		int Wrefs = 0;
+		int Irefs = 0;
+		
+
+		int Rcycles = 0;
+		int Wcycles = 0;
+		int Icycles = 0;
 
 		////////functions/////////
 		int Read(unsigned long long address, int numbytes);
