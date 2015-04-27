@@ -81,7 +81,8 @@ class CacheSystem
 		////////functions/////////
 		CacheSystem(); //default constructor
 		CacheSystem(int L1_size, int L1_assoc_val, int L1_block_size_val, int L1_hit_time_val, int L1_miss_time_val,
-                         int L2_size, int L2_assoc_val, int L2_block_size_val, int L2_hit_time_val, int L2_miss_time_val);
+                            int L2_size, int L2_assoc_val, int L2_block_size_val, int L2_hit_time_val, int L2_miss_time_val,
+			    int L2_transfer_time_val, int L2_bus_width_val);
 		
 		//~CacheSystem(); //destructor?
 

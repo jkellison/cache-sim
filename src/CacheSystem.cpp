@@ -8,10 +8,11 @@ using namespace std;
 //Our default constructor
 CacheSystem::CacheSystem()
 {
-	CacheSystem(8192, 1, 32, 1, 1, 32768, 1, 64, 5, 7);
+	CacheSystem(8192, 1, 32, 1, 1, 32768, 1, 64, 5, 7, 5, 16);
 }
 CacheSystem::CacheSystem(int L1_size, int L1_assoc_val, int L1_block_size_val, int L1_hit_time_val, int L1_miss_time_val,
-			 int L2_size, int L2_assoc_val, int L2_block_size_val, int L2_hit_time_val, int L2_miss_time_val)
+			 int L2_size, int L2_assoc_val, int L2_block_size_val, int L2_hit_time_val, int L2_miss_time_val,
+			 int L2_transfer_time_val, int L2_bus_width_val)
 {
 	//Not sure how to tackle this ATM, but we can set some values here anyway for later
 	
@@ -26,6 +27,9 @@ CacheSystem::CacheSystem(int L1_size, int L1_assoc_val, int L1_block_size_val, i
 	L1D = BasicCache(L1_size, L1_assoc_val, L1_block_size_val, L1_hit_time_val, L1_miss_time_val);
 	L1I = BasicCache(L1_size, L1_assoc_val, L1_block_size_val, L1_hit_time_val, L1_miss_time_val);
 	L2 = BasicCache(L2_size, L2_assoc_val, L2_block_size_val, L2_hit_time_val, L2_miss_time_val);
+
+	L2_transfer_time = L2_transfer_time_val;
+	L2_bus_width = L2_bus_width_val;
 }
 
 int CacheSystem::Execute(char inst, unsigned long long address, int numbytes)

@@ -1,0 +1,23 @@
+D-cache size = 8192 : ways = 1 : block size = 32
+I-cache size = 8192 : ways = 1 : block size = 32
+L2-cache size = 32768 : ways = 1 : block size = 64
+Execution Time = 384;	Total refs:10
+Flush Time = 0
+Inst refs = 6;	Data refs = 4
+
+Number of reference types: [Percentage]
+Reads = 	0	[0.0%]
+Writes = 	4	[40.0%]
+Inst. = 	6	[60.0%]
+Total = 	10
+
+Total cycles for activities: [Percentage]
+Reads = 	0	[0.0%]
+Writes = 	32	[8.3%]
+Inst. = 	352	[91.7%]
+Total = 	384
+
+Average cycles per activity:
+	Read = 0.0;	Write = 8.0;	Inst. = 58.0
+Ideal: Exec. Time = 16; CPI = 2.7
+ideal Mis-aligned: Exec. Time = 16; CPI = 2.7
