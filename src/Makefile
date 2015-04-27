@@ -15,7 +15,7 @@ OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 
 
 $(ODIR)/%.o: %.cpp $(DEPS)
-	$(CC) -c -o $@ $< $(CFLAGS)
+	$(CC) -cpp -o $@ $< $(CFLAGS)
 
 cacheSim: $(OBJ)
 	gcc -o $@ $^ $(CFLAGS) $(LIBS)

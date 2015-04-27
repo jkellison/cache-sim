@@ -1,6 +1,10 @@
 #ifndef CACHESYSTEM_H
 #define CACHESYSTEM_H
 
+class CacheSystem;
+class BasicCache;
+
+
 class BasicCache
 {
 public:
@@ -23,11 +27,11 @@ public:
 
 	////////functions/////////
 	BasicCache(); //Basic/default constructor
-	BasicCache(int size_kb, int assoc_val, int block_size_val, int hit_time_val, int miss_time_val); //Advanced constructor
-//	~BasicCache(); //destructor
+	BasicCache::BasicCache(int size_kb, int assoc_val, int block_size_val, int hit_time_val, int miss_time_val); //Advanced constructor
+	~BasicCache(); //destructor
 
-	int Read(unsigned long address, int numbytes); //Read the data according to the instruction, return the time it took.
-	int Write(unsigned long address, int numbytes, int isDirty); //Write the data/instruction, same thing
+	int Read(unsigned long long address, int numbytes); //Read the data according to the instruction, return the time it took.
+	int Write(unsigned long long address, int numbytes, int isDirty); //Write the data/instruction, same thing
 	int Evict(BasicCache& input_cache, int real_evict);
 
 	int getCacheSize();
@@ -64,8 +68,6 @@ private:
 	int GetIndexBits();
 	int GetOffsetBits();
 
-//	BasicCache() {}//private default constructor
-
 
 };
 
@@ -80,7 +82,7 @@ class CacheSystem
 		CacheSystem(int L1_size_kb, int L1_assoc_val, int L2_size_kb, int L2_assoc_val);
 		//~CacheSystem(); //destructor?
 
-		int Execute(char inst, unsigned long address, int numbytes);
+		int Execute(char inst, unsigned long long address, int numbytes);
 		int GetL1Cost();
 		int GetL2Cost();
 		int GetMMCost();
@@ -126,15 +128,15 @@ class CacheSystem
 		int instruction_count = 0;
 
 		////////functions/////////
-		int Read(unsigned long address, int numbytes);
-		int InstRead(unsigned long address, int numbytes);
-		int Write(unsigned long address, int numbytes);
+		int Read(unsigned long long address, int numbytes);
+		int InstRead(unsigned long long address, int numbytes);
+		int Write(unsigned long long address, int numbytes);
 		int Clean(); //THIS WILL PROBABLY CHANGE
 		int flush();
 
 
-//		CacheSystem() {} //private default constructor
 };
+
 
 
 #endif

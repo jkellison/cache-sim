@@ -1,6 +1,6 @@
 #include <stdio.h>
-#include <cacheSim.h>
-#include <CacheSystem.h>
+#include "cacheSim.h"
+#include "CacheSystem.h"
 
 int main (int argc, char ** argv)
 {
@@ -45,9 +45,7 @@ int main (int argc, char ** argv)
 	unsigned long long addr;
 	int numBytes;
 
-	CacheSystem(cacheParams.L1_cache_size, cacheParams.L1_assoc, cacheParams.L2_cache_size, cacheParams.L2_assoc); 
-
-	CacheSystem cache;
+	CacheSystem cache(cacheParams.L1_cache_size, cacheParams.L1_assoc, cacheParams.L2_cache_size, cacheParams.L2_assoc); 
 
 	while (scanf("%c %Lx %d\n", &inst, &addr, &numBytes) == 3)
 	{

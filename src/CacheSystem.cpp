@@ -18,13 +18,16 @@ CacheSystem::CacheSystem(int L1_size, int L1_assoc_val, int L2_size, int L2_asso
 	//The BasicCache constructors will create the empty arrays & stuff we'll use later
 
 	//Create the cache objects we'll be manipulating
-	BasicCache L1C(L1_size, L1_assoc_val, 32, 1, 1);
-	BasicCache L1D(L1_size, L1_assoc_val, 32, 1, 1);
-	BasicCache L2(L2_size, L2_assoc_val, 64, 5, 7);
+	//BasicCache L1C(L1_size, L1_assoc_val, 32, 1, 1);
+	//BasicCache L1D(L1_size, L1_assoc_val, 32, 1, 1);
+	//BasicCache L2(L2_size, L2_assoc_val, 64, 5, 7);
 
+	L1D = BasicCache(L1_size, L1_assoc_val, 32, 1, 1);
+	L1I = BasicCache(L1_size, L1_assoc_val, 32, 1, 1);
+	L2 = BasicCache(L2_size, L2_assoc_val, 64, 5, 7);
 }
 
-int CacheSystem::Execute(char inst, unsigned long address, int numbytes)
+int CacheSystem::Execute(char inst, unsigned long long address, int numbytes)
 {
 	int exec_time = 0;
 	/////////////////////////////////
@@ -46,14 +49,14 @@ int CacheSystem::Execute(char inst, unsigned long address, int numbytes)
 	exec_time = exec_time + Clean(); //later
 
 	instruction_count = instruction_count + 1;
-	if (instruction_count = 380000)
+	if ((instruction_count % 380000) == 0)
 	{
 		exec_time = exec_time + flush();
 	}
 	return exec_time;
 }
 
-int CacheSystem::Read(unsigned long address, int numbytes)
+int CacheSystem::Read(unsigned long long address, int numbytes)
 {
 	int status = 0;
 	//Step one: check the L1D cache
@@ -83,7 +86,7 @@ int CacheSystem::Read(unsigned long address, int numbytes)
 
 }
 
-int CacheSystem::InstRead(unsigned long address, int numbytes)
+int CacheSystem::InstRead(unsigned long long address, int numbytes)
 {
 	//Same as Read(), but we use the L1I cache instead
 	int status = 0;
@@ -112,7 +115,7 @@ int CacheSystem::InstRead(unsigned long address, int numbytes)
 	}
 }
 
-int CacheSystem::Write(unsigned long address, int numbytes)
+int CacheSystem::Write(unsigned long long address, int numbytes)
 {
 	//Write to the L1 cache. IMMEDIATELY.
 	int status = L1D.Write(address, numbytes, 0);
@@ -145,21 +148,21 @@ int CacheSystem::Clean()
 	//L1
 	if (L1I.write_item != -1)
 	{
-		int numbytes = L1I.block_size / 8;
+		int numbytes = L1I.block_size;
 		L2.Write(L1I.write_item, numbytes, L1I.write_dirty);
 		L1I.write_item = -1;
 		L1I.transfers = L1I.transfers + 1;
-		int cache_time = L2.hit_time * ((L2.block_size / 8) / L2_bus_width);
+		int cache_time = L2.hit_time * ((L2.block_size) / L2_bus_width);
 		time = time + cache_time;
 	}
 	if (L1D.write_item != -1)
 	{
-		int numbytes = L1D.block_size / 8;
+		int numbytes = L1D.block_size;
 		L2.Write(L1D.write_item, numbytes, L1D.write_dirty);
 		L1D.write_item = -1;
 		L1D.transfers = L1D.transfers + 1;
 
-		int cache_time = L2.hit_time * ((L2.block_size / 8) / L2_bus_width);
+		int cache_time = L2.hit_time * ((L2.block_size) / L2_bus_width);
 		time = time + cache_time;
 	}
 
@@ -180,9 +183,9 @@ int CacheSystem::flush()
 	int L1I_L2_count = L1I.Evict(L2, 1);
 
 
-	int L2_mem_time = mem_sendaddr + mem_ready + (mem_chunktime * (L2_mem_count*L2.block_size/8) / mem_chunksize);
-	int L1D_L2_time = L2.hit_time * (L1D_L2_count * (L1D.block_size / 8)) / L2_bus_width;
-	int L1I_L2_time = L2.hit_time * (L1I_L2_count * (L1I.block_size / 8)) / L2_bus_width;
+	int L2_mem_time = mem_sendaddr + mem_ready + (mem_chunktime * (L2_mem_count*L2.block_size) / mem_chunksize);
+	int L1D_L2_time = L2.hit_time * (L1D_L2_count * (L1D.block_size)) / L2_bus_width;
+	int L1I_L2_time = L2.hit_time * (L1I_L2_count * (L1I.block_size)) / L2_bus_width;
 
 	int time = L2_mem_count + L1D_L2_time + L1I_L2_time;
 
@@ -268,7 +271,7 @@ BasicCache::BasicCache(int size_val, int assoc_val, int block_size_val, int hit_
 	hit_time = hit_time_val;
 	miss_time = miss_time_val;
 
-	block_count = cache_size / (block_size / 8); //Bytes / (bytes/block) = number of blocks we need
+	block_count = cache_size / (block_size); //Bytes / (bytes/block) = number of blocks we need
 
 	tag_array = new unsigned long[block_count];
 	valid_array = new int[block_count];
@@ -325,15 +328,18 @@ int BasicCache::GetOffsetBits()
 	//2^n = number of bytes in a block, where n is the number of bits we need so
 	//n = log_2(block_size/8)
 
-	int numbytes = block_size / 8;
+	int numbytes = block_size;
 	int n = int(log(numbytes) / log(2));
 	return n;
 }
 
-int BasicCache::Read(unsigned long address, int numbytes)
+int BasicCache::Read(unsigned long long address, int numbytes)
 {
 	unsigned long tag = (address >> (index_bits + offset_bits)); //Shift right to get the tag bits
-	unsigned int index = (address << tag_bits) >> (tag_bits + offset_bits); //Shift left to get rid of the tag, shift right to get rid of offest bits
+	//unsigned int index = (address << tag_bits) >> (tag_bits + offset_bits); //Shift left to get rid of the tag, shift right to get rid of offest bits
+	unsigned int index = (address >> offset_bits);
+	index = index << (32 - index_bits);
+	index = index >> (32 - index_bits);
 
 	//FA
 	if (assoc == 0)
@@ -348,7 +354,7 @@ int BasicCache::Read(unsigned long address, int numbytes)
 				UpdateLRU(index);
 				//update the hit count
 				hit_count = hit_count + 1;
-				return hit_time * numbytes/4;
+				return hit_time * numbytes;
 			}
 		}
 
@@ -368,7 +374,7 @@ int BasicCache::Read(unsigned long address, int numbytes)
 			UpdateLRU(index);
 			//Update hit count
 			hit_count = hit_count + 1;
-			return hit_time * numbytes/4;
+			return hit_time * numbytes;
 		}
 		else
 		{
@@ -393,7 +399,7 @@ int BasicCache::Read(unsigned long address, int numbytes)
 				//Same deal: need to update LRU
 				UpdateLRU(index);
 				hit_count = hit_count + 1;
-				return hit_time * numbytes/4;
+				return hit_time * numbytes;
 			}
 			else
 			{
@@ -409,7 +415,7 @@ int BasicCache::Read(unsigned long address, int numbytes)
 
 }
 
-int BasicCache::Write(unsigned long address, int numbytes, int isDirty)
+int BasicCache::Write(unsigned long long address, int numbytes, int isDirty)
 {
 	//Idea: see if it's in the cache. If it is, we just need to set the dirty bit.
 	//If it isn't, and the data is not valid, we return the hit time. Easy peasy.
@@ -417,7 +423,11 @@ int BasicCache::Write(unsigned long address, int numbytes, int isDirty)
 		//Add the tag & index together, shift to form an address. Add to the write buffer.
 
 	unsigned long tag = (address >> (index_bits + offset_bits)); //Shift right to get the tag bits
-	unsigned int index = (address << tag_bits) >> (tag_bits + offset_bits); //Shift left to get rid of the tag, shift right to get rid of offest bits
+	//unsigned int index = (address << tag_bits) >> (tag_bits + offset_bits); //Shift left to get rid of the tag, shift right to get rid of offest bits
+	unsigned int index = (address >> offset_bits);
+	index = index << (32 - index_bits);
+	index = index >> (32 - index_bits);
+	
 
 	//Fully Associative
 	if (assoc == 0)
@@ -628,7 +638,7 @@ int BasicCache::Evict(BasicCache& input_cache, int real_evict)
 				//Reconstruct the address
 				long long tag = tag_array[i];
 				tag = (tag << (index_bits + offset_bits)) + (i << offset_bits);
-				int numbytes = (block_size) / 8; //number of bytes in a block
+				int numbytes = (block_size); //number of bytes in a block
 
 				input_cache.Write(tag, numbytes, 1);
 				kickouts_flush = kickouts_flush + 1;
@@ -692,13 +702,18 @@ int BasicCache::getAssoc()
 {
 	return assoc;
 }
+<<<<<<< HEAD
 /*
 BasicCache::basicCache()
+=======
+
+BasicCache::~BasicCache()
+>>>>>>> 3922261ff20caeb444ff2f9836c6173bd50adb59
 {
-	delete tag_array;
-	delete valid_array;
-	delete dirty_array;
-	delete LRU_array;
+	//delete tag_array;
+	//delete valid_array;
+	//delete dirty_array;
+	//delete LRU_array;
 }
 */
 
