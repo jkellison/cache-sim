@@ -1,7 +1,7 @@
 ------------------------------------------------------------
 	tr1.txt	Simulation Results
 	tr1.txt	Simulation Results
-	Start time: 2015-4-27 12:46:12
+	Start time: 2015-4-27 16:26:32
 ------------------------------------------------------------
 D-cache size = 8192 : ways = 1 : block size = 32
 I-cache size = 8192 : ways = 1 : block size = 32
@@ -31,7 +31,7 @@ Memory Level: L1I
 	Hit Count = 4	Miss Count = 2
 	Total Requests = 6
 	Hit Rate = 66.7	Miss Rate = 33.3
-	Kickouts = 0;	Dirty Kickouts = 0;	Transfers = 6
+	Kickouts = 0;	Dirty Kickouts = 0;	Transfers = 2
 	Flush Kickouts = 0
 
 Memory Level: L1D
@@ -45,7 +45,7 @@ Memory Level: L2
 	Hit Count = 0	Miss Count = 2
 	Total Requests = 2
 	Hit Rate = 0.0	Miss Rate = 100.0
-	Kickouts = 0;	Dirty Kickouts = 0;	Transfers = 0
+	Kickouts = 0;	Dirty Kickouts = 0;	Transfers = 2
 	Flush Kickouts = 0
 
 L1 Cache Cost (Icache $200) + (Dcache $200) = $400
@@ -53,5 +53,5 @@ L2 Cache Cost = $50;	Memory Cost = $275	Total cost = $725
 Flushes = 0 :	Invalidates = 0
 
 ------------------------------------------------------------
-End time: 2015-4-27 12:46:12
+End time: 2015-4-27 16:26:32
 Total run time: 0

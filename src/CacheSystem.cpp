@@ -91,7 +91,6 @@ int CacheSystem::Read(unsigned long long address, int numbytes)
 	int status = 0;
 	//Step one: check the L1D cache
 	status = L1D.Read(address, numbytes);
-	L1D.transfers = L1D.transfers + 1; //cheating a little here- no matter what happens, L1D is going to transfer SOMETHING to the processor.
 	if (status > 0) return status; //We found it! Hooray!
 	else //We need to check the L2 cache
 	{
@@ -101,7 +100,6 @@ int CacheSystem::Read(unsigned long long address, int numbytes)
 			//We found it!
 			//Write it to the L1 cache, then return the time it took.
 			int write_status = L1D.Write(address, numbytes, 0);
-			L2.transfers = L2.transfers + 1;
 			return (status + write_status + L1D.miss_time);
 		}
 		else
@@ -110,6 +108,9 @@ int CacheSystem::Read(unsigned long long address, int numbytes)
 			//Write it to the L1 cache, return the time it took.
 			int write_status = L1D.Write(address, numbytes, 0);
 			int mem_time = mem_sendaddr + mem_ready + (mem_chunktime * (L2.block_size) / mem_chunksize);
+	
+			L1D.transfers = L1D.transfers + 1; //Transfer from main mem caused by L1D
+			L2.transfers = L2.transfers + 1;//Also caused by L2 miss
 			return (write_status + L1D.miss_time + L2.miss_time + mem_time);
 		}
 	}
@@ -120,9 +121,8 @@ int CacheSystem::InstRead(unsigned long long address, int numbytes)
 {
 	//Same as Read(), but we use the L1I cache instead
 	int status = 0;
-	//Step one: check the L1D cache
+	//Step one: check the L1I cache
 	status = L1I.Read(address, numbytes);
-	L1I.transfers = L1I.transfers + 1; //cheating a little here- no matter what happens, L1I is going to transfer SOMETHING to the processor.
 	if (status > 0) return status; //We found it! Hooray!
 	else //We need to check the L2 cache
 	{
@@ -140,17 +140,20 @@ int CacheSystem::InstRead(unsigned long long address, int numbytes)
 			//Write it to the L1 cache, return the time it took.
 			int write_status = L1I.Write(address, numbytes, 0);
 			int mem_time = mem_sendaddr + mem_ready + (mem_chunktime * 64 / mem_chunksize);
-			return (write_status + L1I.miss_time + L2.miss_time + mem_time);
+			L1I.transfers = L1I.transfers + 1;//we've transfered something from main mem
+			L2.transfers = L2.transfers + 1;
+		 	return (write_status + L1I.miss_time + L2.miss_time + mem_time);
 		}
 	}
 }
 
 int CacheSystem::Write(unsigned long long address, int numbytes)
 {
-	//Write to the L1 cache. IMMEDIATELY.
-	int status = L1D.Write(address, numbytes, 0);
-	//That's it! We'll push stuff to the next cache level later if we need to- that's the purpose of "Clean".
-	return status;
+
+	int status;
+	status = L1D.Write(address, numbytes, 0);
+//That's it! We'll push stuff to the next cache level later if we need to- that's the purpose of "Clean".
+return status;
 	
 }
 
