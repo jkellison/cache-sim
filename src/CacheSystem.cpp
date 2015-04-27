@@ -8,9 +8,10 @@ using namespace std;
 //Our default constructor
 CacheSystem::CacheSystem()
 {
-	CacheSystem(8192, 1, 32768, 1);
+	CacheSystem(8192, 1, 32, 1, 1, 32768, 1, 64, 5, 7);
 }
-CacheSystem::CacheSystem(int L1_size, int L1_assoc_val, int L2_size, int L2_assoc_val)
+CacheSystem::CacheSystem(int L1_size, int L1_assoc_val, int L1_block_size_val, int L1_hit_time_val, int L1_miss_time_val,
+			 int L2_size, int L2_assoc_val, int L2_block_size_val, int L2_hit_time_val, int L2_miss_time_val)
 {
 	//Not sure how to tackle this ATM, but we can set some values here anyway for later
 	
@@ -22,9 +23,9 @@ CacheSystem::CacheSystem(int L1_size, int L1_assoc_val, int L2_size, int L2_asso
 	//BasicCache L1D(L1_size, L1_assoc_val, 32, 1, 1);
 	//BasicCache L2(L2_size, L2_assoc_val, 64, 5, 7);
 
-	L1D = BasicCache(L1_size, L1_assoc_val, 32, 1, 1);
-	L1I = BasicCache(L1_size, L1_assoc_val, 32, 1, 1);
-	L2 = BasicCache(L2_size, L2_assoc_val, 64, 5, 7);
+	L1D = BasicCache(L1_size, L1_assoc_val, L1_block_size_val, L1_hit_time_val, L1_miss_time_val);
+	L1I = BasicCache(L1_size, L1_assoc_val, L1_block_size_val, L1_hit_time_val, L1_miss_time_val);
+	L2 = BasicCache(L2_size, L2_assoc_val, L2_block_size_val, L2_hit_time_val, L2_miss_time_val);
 }
 
 int CacheSystem::Execute(char inst, unsigned long long address, int numbytes)
@@ -289,13 +290,13 @@ BasicCache::BasicCache(int size_val, int assoc_val, int block_size_val, int hit_
 	}
 
 	//Update the number of bits we need from the address for tag, index, offset.
-	offset_bits = GetOffsetBits();
-	index_bits = GetIndexBits();
-	tag_bits = GetTagBits();
+	offset_bits = SetOffsetBits();
+	index_bits = SetIndexBits();
+	tag_bits = SetTagBits();
 
 }
 
-int BasicCache::GetTagBits()
+int BasicCache::SetTagBits()
 {
 	//Computes the number of index bits in the address
 	//Number of tag bits = 48 - index bits - offset bits
@@ -305,7 +306,7 @@ int BasicCache::GetTagBits()
 	int n = 48 - index_bits - offset_bits;
 	return n;
 }
-int BasicCache::GetIndexBits()
+int BasicCache::SetIndexBits()
 {
 	//Computes number of index bits in the address
 	//2^n = number of blocks, where n is the number of bits we need so
@@ -322,7 +323,7 @@ int BasicCache::GetIndexBits()
 
 	return n;
 }
-int BasicCache::GetOffsetBits()
+int BasicCache::SetOffsetBits()
 {
 	//Computes the number of byte offest bits in the address
 	//2^n = number of bytes in a block, where n is the number of bits we need so
@@ -702,20 +703,20 @@ int BasicCache::getAssoc()
 {
 	return assoc;
 }
-<<<<<<< HEAD
-/*
-BasicCache::basicCache()
-=======
+
+int BasicCache::getBlockSize()
+{
+	return block_size;
+}
 
 BasicCache::~BasicCache()
->>>>>>> 3922261ff20caeb444ff2f9836c6173bd50adb59
+
 {
 	//delete tag_array;
 	//delete valid_array;
 	//delete dirty_array;
 	//delete LRU_array;
 }
-*/
 
 ///////////////////////
 //Cache system data functions

@@ -1,6 +1,6 @@
 #include <stdio.h>
-#include "cacheSim.h"
 #include "CacheSystem.h"
+#include "cacheSim.h"
 
 int main (int argc, char ** argv)
 {
@@ -10,6 +10,8 @@ int main (int argc, char ** argv)
 	char str[80];
 
 	FILE * config;
+
+	CacheSystem cache;
 
 	//if a config file has been passed in, change the cache parameters
 	if (argc > 1)
@@ -31,34 +33,47 @@ int main (int argc, char ** argv)
 		fscanf(config, "%s %d\n", str, &cacheParams.L2_transfer_time);
 		fscanf(config, "%s %d\n", str, &cacheParams.L2_bus_width);
 	
+		fclose(config);
 	}
 
-	printf("L1_block_size: %d\tL2_block_size: %d\r\n", cacheParams.L1_block_size, cacheParams.L2_block_size);
-	printf("L1_cache_size: %d\tL2_cache_size: %d\r\n", cacheParams.L1_cache_size, cacheParams.L2_cache_size);
-	printf("L1_assoc: %d\t\tL2_assoc: %d\r\n", cacheParams.L1_assoc, cacheParams.L2_assoc);
-	printf("L1_hit_time: %d\t\tL2_hit_time: %d\r\n", cacheParams.L1_hit_time, cacheParams.L2_hit_time);
-	printf("L1_miss_time: %d\t\tL2_miss_time: %d\r\n", cacheParams.L1_miss_time, cacheParams.L2_miss_time);
-	printf("L2_transfer_time: %d\r\n", cacheParams.L2_transfer_time);
-	printf("L2_bus_width: %d\r\n", cacheParams.L2_bus_width);
+	cache = CacheSystem(cacheParams.L1_cache_size, cacheParams.L1_assoc, cacheParams.L1_block_size,
+				  cacheParams.L1_hit_time, cacheParams.L1_miss_time,
+				  cacheParams.L2_cache_size, cacheParams.L2_assoc, cacheParams.L2_block_size,
+				  cacheParams.L2_hit_time, cacheParams.L2_miss_time); 
+
+	printf("D-cache size = %d : ways = %d : block size = %d\r\n", cache.L1D.getCacheSize(), cache.L1D.getAssoc(), cache.L1D.getBlockSize());
+	printf("I-cache size = %d : ways = %d : block size = %d\r\n", cache.L1I.getCacheSize(), cache.L1I.getAssoc(), cache.L1I.getBlockSize());
+	printf("L2-cache size = %d : ways = %d : block size = %d\r\n", cache.L2.getCacheSize(), cache.L2.getAssoc(), cache.L2.getBlockSize());
+
 
 	char inst;
 	unsigned long long addr;
 	int numBytes;
 
-	CacheSystem cache(cacheParams.L1_cache_size, cacheParams.L1_assoc, cacheParams.L2_cache_size, cacheParams.L2_assoc); 
+	unsigned int execTime = 0;
+
+	unsigned int refs = 0;
 
 	while (scanf("%c %Lx %d\n", &inst, &addr, &numBytes) == 3)
 	{
 
-		if (cache.Execute(inst, addr, numBytes))
+
+		printf("Instr: %c Addr: %Lx Bytes: %d\r\n", inst, addr, numBytes);	
+
+		execTime += cache.Execute(inst, addr, numBytes);
+		
+		if (execTime < 0)
 		{
 			printf("CacheSystem.Execute Error. Terminating simulation\r\n");
 			return -1;
 		}
 
-	printf("Instr: %c Addr: %Lx Bytes: %d\r\n", inst, addr, numBytes);	
+		refs++;//increment ref counter
+
 
 	}
+
+	printf("Execution Time: %d\tTotal refs:%d\r\n", execTime, refs);
 
 return 0;
 }
