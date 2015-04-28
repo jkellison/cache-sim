@@ -188,6 +188,57 @@ int CacheSystem::Read(unsigned long long address, int numbytes)
 */
 int CacheSystem::InstRead(unsigned long long address, int numbytes)
 {
+
+        //Same as Read(), but we use the L1I cache instead
+        int status = 0;
+        //Step one: check the L1D cache
+        status = L1I.CheckCache(address);
+        if (status == 1)
+        {
+                //It's there. All we need to do is return the hit time.
+                L1I.hit_count = L1I.hit_count + 1;
+                return L1I.hit_time;
+        }
+        else //We need to check the L2 cache
+        {
+                L1I.miss_count = L1I.miss_count + 1;
+                status = L2.CheckCache(address);
+                if (status == 1)
+                {
+                        //We found it!
+
+                        //"read in" from L2
+                        L1I.UpdateCache(address, 0);
+                        L1I.transfers = L1I.transfers + 1;
+                        //Return the time it took
+                        //Time to transfer from L2 to L1: 
+                        int transfer_time = L2.hit_time * (L1I.block_size / L2_bus_width);
+                        return L1I.miss_time + transfer_time + L1I.hit_time;
+
+                }
+                else
+                {
+                        //Great. It's not in L1D OR L2. Time to "check" "main memory".
+
+                        //"read in" from "main memory" to L2
+                        L2.transfers = L2.transfers + 1;
+                        L2.UpdateCache(address, 0);
+                        //"read in" from L2 to L1
+                        L1I.transfers = L1I.transfers + 1;
+                        L1I.UpdateCache(address, 0);
+
+                        //Return the time it took
+                        int transfer_time = L2.hit_time * (L1I.block_size / L2_bus_width);
+                        int mem_time = mem_sendaddr + mem_ready + (mem_chunktime * (L2.block_size / mem_chunksize));
+                        return L1I.miss_time + L1I.hit_time + L2.hit_time + L2.miss_time + mem_time + transfer_time;
+
+                }
+        }
+
+}
+/*
+int CacheSystem::InstRead(unsigned long long address, int numbytes)
+{
 	//Same as Read(), but we use the L1I cache instead
 	int status = 0;
 	//Step one: check alignment
@@ -241,7 +292,7 @@ int CacheSystem::InstRead(unsigned long long address, int numbytes)
 		}
 	}
 }
-
+*/
 int CacheSystem::Write(unsigned long long address, int numbytes)
 {
 	//Same as Read(), but we use the L1I cache instead
