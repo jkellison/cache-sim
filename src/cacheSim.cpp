@@ -167,17 +167,17 @@ int main (int argc, char ** argv)
 
 	fprintf(log,"Average cycles per activity:\r\n");
 
-	if(Rrefs > 0) average = Rcycle / Rrefs;
+	if(Rrefs > 0) average = (float)Rcycle / Rrefs;
 	else average = 0;
 
 	fprintf(log,"\tRead = %2.1f;", average);
 	
-	if(Wrefs > 0) average = Wcycle / Wrefs;
+	if(Wrefs > 0) average = (float)Wcycle / Wrefs;
 	else average = 0;
 
 	fprintf(log,"\tWrite = %2.1f;", average);
 	
-	if(Irefs > 0) average = Icycle / Irefs;
+	if(Irefs > 0) average = (float)execTime / Irefs;
 	else average = 0;
 
 	fprintf(log,"\tInst. = %2.1f\r\n", average);
@@ -190,7 +190,8 @@ int main (int argc, char ** argv)
 	
 	fprintf(log,"\tIdeal: Exec. Time = %d; CPI = %2.1f\r\n", Ideal, average); 
 
-	Ideal = (Irefs*2) + Rrefs + Wrefs;//need to figure out the mis-aligned case
+	Ideal = Irefs*2 + ((cache.L1I_Hits() + cache.L1I_Misses()) - Irefs) + cache.L1D_Hits()
+		+ cache.L1D_Misses();//need to figure out the mis-aligned case
 
 	average = (float)Ideal/(float)Irefs;
 

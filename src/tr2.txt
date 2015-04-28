@@ -1,50 +1,50 @@
 ------------------------------------------------------------
-	tr1.txt	Simulation Results
-	Start time: 2015-4-28 2:40:19
+	tr2.txt	Simulation Results
+	Start time: 2015-4-28 2:47:48
 ------------------------------------------------------------
 D-cache size = 8192 : ways = 1 : block size = 32
 I-cache size = 8192 : ways = 1 : block size = 32
 L2-cache size = 32768 : ways = 1 : block size = 64
-Execution Time = 564;	Total refs:10
+Execution Time = 965;	Total refs:25
 Flush Time = 0
-Inst refs = 6;	Data refs = 4
+Inst refs = 17;	Data refs = 7
 
 Number of reference types: [Percentage]
-Reads = 	0	[0.0%]
-Writes = 	4	[40.0%]
-Inst. = 	6	[60.0%]
-Total = 	10
+Reads = 	1	[4.0%]
+Writes = 	7	[28.0%]
+Inst. = 	17	[68.0%]
+Total = 	25
 
 Total cycles for activities: [Percentage]
-Reads = 	0	[0.0%]
-Writes = 	191	[33.9%]
-Inst. = 	373	[66.1%]
-Total = 	564
+Reads = 	185	[19.2%]
+Writes = 	380	[39.4%]
+Inst. = 	400	[41.5%]
+Total = 	965
 
 Average cycles per activity:
-	Read = 0.0;	Write = 47.8;	Inst. = 94.0
-	Ideal: Exec. Time = 16; CPI = 2.7
-	Ideal Mis-aligned: Exec. Time = 21; CPI = 3.5
+	Read = 185.0;	Write = 54.3;	Inst. = 56.8
+	Ideal: Exec. Time = 42; CPI = 2.5
+	Ideal Mis-aligned: Exec. Time = 56; CPI = 3.3
 
 Memory Level: L1I
-	Hit Count = 5	Miss Count = 2
-	Total Requests = 7
-	Hit Rate = 71.4	Miss Rate = 28.6
+	Hit Count = 20	Miss Count = 3
+	Total Requests = 23
+	Hit Rate = 87.0	Miss Rate = 13.0
 	Kickouts = 0;	Dirty Kickouts = 0;	Transfers = 2
 	Flush Kickouts = 0
 
 Memory Level: L1D
-	Hit Count = 7	Miss Count = 1
-	Total Requests = 8
-	Hit Rate = 87.5	Miss Rate = 12.5
-	Kickouts = 0;	Dirty Kickouts = 0;	Transfers = 1
+	Hit Count = 13	Miss Count = 3
+	Total Requests = 16
+	Hit Rate = 81.2	Miss Rate = 18.8
+	Kickouts = 0;	Dirty Kickouts = 0;	Transfers = 3
 	Flush Kickouts = 0
 
 Memory Level: L2
-	Hit Count = 0	Miss Count = 3
-	Total Requests = 3
-	Hit Rate = 0.0	Miss Rate = 100.0
-	Kickouts = 0;	Dirty Kickouts = 0;	Transfers = 3
+	Hit Count = 1	Miss Count = 5
+	Total Requests = 6
+	Hit Rate = 16.7	Miss Rate = 83.3
+	Kickouts = 0;	Dirty Kickouts = 0;	Transfers = 5
 	Flush Kickouts = 0
 
 L1 Cache Cost (Icache $200) + (Dcache $200) = $400
@@ -57,15 +57,20 @@ Cache Final Contents - Index and Tag values are in HEX
 
 Memory Level:	L1I
 Index :	0 | V: 1	D:0	Tag:	 fc0e7112	|
+Index :	1 | V: 1	D:0	Tag:	 fc0e7112	|
 Index :	35 | V: 1	D:0	Tag:	 fc0e7110	|
 
 Memory Level:	L1D
+Index :	3d | V: 1	D:1	Tag:	 fffad424	|
 Index :	3e | V: 1	D:1	Tag:	 fffad424	|
+Index :	dc | V: 1	D:0	Tag:	 fc0e7220	|
 
 Memory Level:	L2
 Index :	1a | V: 1	D:0	Tag:	 ff039c44	|
+Index :	1e | V: 1	D:0	Tag:	 fffeb509	|
 Index :	1f | V: 1	D:0	Tag:	 fffeb509	|
+Index :	6e | V: 1	D:0	Tag:	 ff039c88	|
 Index :	100 | V: 1	D:0	Tag:	 ff039c44	|
 
-End time: 2015-4-28 2:40:19
+End time: 2015-4-28 2:47:48
 Total run time: 0

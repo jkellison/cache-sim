@@ -128,14 +128,15 @@ int CacheSystem::Read(unsigned long long address, int numbytes)
                         //L1D.transfers = L1D.transfers + 1;
                         //Return the time it took
                         //Time to transfer from L2 to L1: 
-                        int transfer_time = L2.hit_time * (L1D.block_size / L2_bus_width);
-                        return L1D.miss_time + transfer_time;
+	                L2.hit_count++;        
+			int transfer_time = L2.hit_time * (L1D.block_size / L2_bus_width);
+                        return L1D.miss_time + transfer_time + L1D.hit_time;
 
                 }
                 else
                 {
                         //Great. It's not in L1D OR L2. Time to "check" "main memory".
-
+			L2.miss_count++;
                         //"read in" from "main memory" to L2
                         L2.transfers = L2.transfers + 1;
                         L2.UpdateCache(address, 0);
@@ -146,7 +147,7 @@ int CacheSystem::Read(unsigned long long address, int numbytes)
                         //Return the time it took
                         int transfer_time = L2.hit_time * (L1D.block_size / L2_bus_width);
                         int mem_time = mem_sendaddr + mem_ready + (mem_chunktime * (L2.block_size / mem_chunksize));
-                        return L1D.miss_time + L2.miss_time + mem_time + transfer_time;
+                        return L1D.miss_time + L1D.hit_time + L2.hit_time + L2.miss_time + mem_time + transfer_time;
 
                 }
         }
@@ -358,18 +359,17 @@ int CacheSystem::GetMMCost()
 	int bandwidth_mult = 0;
 	if (mem_chunksize > 16)
 	{ 
-		bandwidth_mult = int(log(mem_chunksize) / log(2)) - 3;
+		bandwidth_mult = log((double)mem_chunksize/16) / log(2) * 100;
 	}
-	int bandwidth_cost = 25 + 100 * bandwidth_mult;
+	int bandwidth_cost = 25 + bandwidth_mult;
 
 	//Latency cost
 	int latency_mult = 0;
 	if (mem_ready < 50)
 	{
-		latency_mult = 50 / mem_ready;
-		latency_mult = int(log(latency_mult) / log(2)) + 1;
+		latency_mult = (log((double)mem_ready/50) / log(2)) * -200;
 	}
-	int latency_cost = 50 + latency_mult * 200;
+	int latency_cost = 50 + latency_mult;
 
 	int total = latency_cost + bandwidth_cost;
 	return total;
