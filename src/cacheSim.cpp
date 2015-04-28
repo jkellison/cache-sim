@@ -202,11 +202,11 @@ int main (int argc, char ** argv)
 
 	fprintf(log, "Memory Level: L1I\r\n");
 	fprintf(log, "\tHit Count = %lu\tMiss Count = %lu\r\n", cache.L1I_Hits(), cache.L1I_Misses());
-	fprintf(log, "\tTotal Requests = %d\r\n",Irefs);
+	fprintf(log, "\tTotal Requests = %d\r\n",cache.L1I_Hits() + cache.L1I_Misses());
 	
-	percent = (float)cache.L1I_Hits()/(float)Irefs*100;
+	percent = (float)cache.L1I_Hits()/(float)(cache.L1I_Hits() + cache.L1I_Misses())*100;
 	fprintf(log, "\tHit Rate = %2.1f\t",percent);
-	percent = (float)cache.L1I_Misses()/(float)Irefs*100;
+	percent = (float)cache.L1I_Misses()/(float)(cache.L1I_Hits() + cache.L1I_Misses())*100;
 	fprintf(log, "Miss Rate = %2.1f\r\n", percent);
 
 	fprintf(log, "\tKickouts = %lu;\tDirty Kickouts = %lu;\tTransfers = %lu\r\n",
@@ -217,11 +217,11 @@ int main (int argc, char ** argv)
 	
 	fprintf(log, "Memory Level: L1D\r\n");
 	fprintf(log, "\tHit Count = %lu\tMiss Count = %lu\r\n", cache.L1D_Hits(), cache.L1D_Misses());
-	fprintf(log, "\tTotal Requests = %d\r\n",Rrefs + Wrefs);
+	fprintf(log, "\tTotal Requests = %d\r\n",cache.L1D_Hits() + cache.L1D_Misses());
 	
-	percent = (float)cache.L1D_Hits()/(float)(Rrefs + Wrefs)*100;
+	percent = (float)cache.L1D_Hits()/(float)(cache.L1D_Hits() + cache.L1D_Misses())*100;
 	fprintf(log, "\tHit Rate = %2.1f\t",percent);
-	percent = (float)cache.L1D_Misses()/(float)(Rrefs + Wrefs)*100;
+	percent = (float)cache.L1D_Misses()/(float)(cache.L1D_Hits() + cache.L1D_Misses())*100;
 	fprintf(log, "Miss Rate = %2.1f\r\n", percent);
 
 	fprintf(log, "\tKickouts = %lu;\tDirty Kickouts = %lu;\tTransfers = %lu\r\n",
@@ -251,8 +251,45 @@ int main (int argc, char ** argv)
 		cache.GetL2Cost(), cache.GetMMCost(), cache.GetL2Cost() + cache.GetMMCost() + (cache.GetL1Cost() * 2));
 	fprintf(log, "Flushes = %d :\tInvalidates = %d\r\n\r\n", 0, 0);//TODO: fill out
 
-	fprintf(log,"------------------------------------------------------------\r\n");
+	fprintf(log,"------------------------------------------------------------\r\n\r\n");
 
+	fprintf(log, "Cache Final Contents - Index and Tag values are in HEX\r\n\r\n");
+	fprintf(log, "Memory Level:\tL1I\r\n");
+	
+	int i;
+	int n = 2 ^ cache.L1I.getIndexBits();
+	for (i = 0; i < n; i++)
+	{
+		if (cache.L1I.getValid(i))
+		{
+			fprintf(log, "Index :\t%2x | V: 1\tD:%d\tTag:\t%9x\t|\r\n",i, cache.L1I.getDirty(i), cache.L1I.getTag(i)); 
+		}
+	}
+	fprintf(log,"\r\n");
+
+	fprintf(log, "Memory Level:\tL1D\r\n");
+	
+	n = 2 ^ cache.L1D.getIndexBits();
+	for (i = 0; i < n; i++)
+	{
+		if (cache.L1D.getValid(i))
+		{
+			fprintf(log, "Index :\t%2x | V: 1\tD:%d\tTag:\t%9x\t|\r\n",i, cache.L1D.getDirty(i), cache.L1D.getTag(i)); 
+		}
+	}
+	fprintf(log,"\r\n");
+
+	fprintf(log, "Memory Level:\tL2\r\n");
+	
+	n = 2 ^ cache.L2.getIndexBits();
+	for (i = 0; i < n; i++)
+	{
+		if (cache.L2.getValid(i))
+		{
+			fprintf(log, "Index :\t%2x | V: 1\tD:%d\tTag:\t%9x\t|\r\n",i, cache.L2.getDirty(i), cache.L2.getTag(i)); 
+		}
+	}
+	fprintf(log,"\r\n");
 	time_t old;
 
 	old = now;

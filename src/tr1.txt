@@ -1,12 +1,12 @@
 ------------------------------------------------------------
 	tr1.txt	Simulation Results
 	tr1.txt	Simulation Results
-	Start time: 2015-4-27 16:26:32
+	Start time: 2015-4-27 22:26:20
 ------------------------------------------------------------
 D-cache size = 8192 : ways = 1 : block size = 32
 I-cache size = 8192 : ways = 1 : block size = 32
 L2-cache size = 32768 : ways = 1 : block size = 64
-Execution Time = 384;	Total refs:10
+Execution Time = 391;	Total refs:10
 Flush Time = 0
 Inst refs = 6;	Data refs = 4
 
@@ -18,26 +18,26 @@ Total = 	10
 
 Total cycles for activities: [Percentage]
 Reads = 	0	[0.0%]
-Writes = 	32	[8.3%]
-Inst. = 	352	[91.7%]
-Total = 	384
+Writes = 	8	[2.0%]
+Inst. = 	383	[98.0%]
+Total = 	391
 
 Average cycles per activity:
-	Read = 0.0;	Write = 8.0;	Inst. = 58.0
+	Read = 0.0;	Write = 2.0;	Inst. = 63.0
 	Ideal: Exec. Time = 16; CPI = 2.7
 	Ideal Mis-aligned: Exec. Time = 16; CPI = 2.7
 
 Memory Level: L1I
-	Hit Count = 4	Miss Count = 2
-	Total Requests = 6
-	Hit Rate = 66.7	Miss Rate = 33.3
+	Hit Count = 5	Miss Count = 2
+	Total Requests = 7
+	Hit Rate = 71.4	Miss Rate = 28.6
 	Kickouts = 0;	Dirty Kickouts = 0;	Transfers = 2
 	Flush Kickouts = 0
 
 Memory Level: L1D
 	Hit Count = 0	Miss Count = 0
-	Total Requests = 4
-	Hit Rate = 0.0	Miss Rate = 0.0
+	Total Requests = 0
+	Hit Rate = -nan	Miss Rate = -nan
 	Kickouts = 0;	Dirty Kickouts = 0;	Transfers = 0
 	Flush Kickouts = 0
 
@@ -53,5 +53,16 @@ L2 Cache Cost = $50;	Memory Cost = $275	Total cost = $725
 Flushes = 0 :	Invalidates = 0
 
 ------------------------------------------------------------
-End time: 2015-4-27 16:26:32
+
+Cache Final Contents - Index and Tag values are in HEX
+
+Memory Level:	L1I
+Index :	 0 | V: 1	D:0	Tag:	 fc0e7112	|
+Index :	 1 | V: 1	D:0	Tag:	 fc0e7112	|
+
+Memory Level:	L1D
+
+Memory Level:	L2
+
+End time: 2015-4-27 22:26:20
 Total run time: 0

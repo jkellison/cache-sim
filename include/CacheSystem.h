@@ -27,7 +27,7 @@ public:
 
 	////////functions/////////
 	BasicCache(); //Basic/default constructor
-	BasicCache(int size_kb, int assoc_val, int block_size_val, int hit_time_val, int miss_time_val); //Advanced constructor
+	BasicCache(int size_kb, int assoc_val, int block_size_val, int hit_time_val, int miss_time_val, int bus_width_val); //Advanced constructor
 	~BasicCache(); //destructor
 
 	int Read(unsigned long long address, int numbytes); //Read the data according to the instruction, return the time it took.
@@ -38,13 +38,18 @@ public:
 	int getAssoc();
 	int getBlockSize();
 
+	unsigned long getTag(int index);
+	int getValid(int index);
+	int getDirty(int index);
+
+	int getIndexBits();
 private:
 
 	////////variables/////////
 	int cache_size = 8192;
 	int assoc = 1;	//associativity
 	int block_count;
-
+	int bus_width;
 
 	//Tag and status bits
 	unsigned long * tag_array; //32 bits!

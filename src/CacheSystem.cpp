@@ -24,9 +24,9 @@ CacheSystem::CacheSystem(int L1_size, int L1_assoc_val, int L1_block_size_val, i
 	//BasicCache L1D(L1_size, L1_assoc_val, 32, 1, 1);
 	//BasicCache L2(L2_size, L2_assoc_val, 64, 5, 7);
 
-	L1D = BasicCache(L1_size, L1_assoc_val, L1_block_size_val, L1_hit_time_val, L1_miss_time_val);
-	L1I = BasicCache(L1_size, L1_assoc_val, L1_block_size_val, L1_hit_time_val, L1_miss_time_val);
-	L2 = BasicCache(L2_size, L2_assoc_val, L2_block_size_val, L2_hit_time_val, L2_miss_time_val);
+	L1D = BasicCache(L1_size, L1_assoc_val, L1_block_size_val, L1_hit_time_val, L1_miss_time_val, 4);
+	L1I = BasicCache(L1_size, L1_assoc_val, L1_block_size_val, L1_hit_time_val, L1_miss_time_val, 4);
+	L2 = BasicCache(L2_size, L2_assoc_val, L2_block_size_val, L2_hit_time_val, L2_miss_time_val, L2_bus_width_val);
 
 	L2_transfer_time = L2_transfer_time_val;
 	L2_bus_width = L2_bus_width_val;
@@ -89,8 +89,28 @@ int CacheSystem::Execute(char inst, unsigned long long address, int numbytes)
 int CacheSystem::Read(unsigned long long address, int numbytes)
 {
 	int status = 0;
-	//Step one: check the L1D cache
-	status = L1D.Read(address, numbytes);
+	//Step one: check alignment
+	int mod = address % 4;
+	if (mod <= (4 - numbytes))//will fit with one reference
+	{
+		status = L1D.Read(address - mod, numbytes);
+
+	}
+	else if (mod <= (8 - numbytes))//will take two references
+	{
+		status = Read(address - mod, 4 - mod);
+		
+		status += Read(address - mod + 4, numbytes - (4 - mod));
+		return status;
+	}
+	else//it will take three references (intructions are never longer than 8 bytes)
+	{
+		status = Read(address - mod, 4 - mod);
+		status += Read(address - mod + 4, 4);
+		status += Read(address - mod + 8, numbytes - (8 - mod));
+		return status;
+	
+	}
 	if (status > 0) return status; //We found it! Hooray!
 	else //We need to check the L2 cache
 	{
@@ -121,37 +141,85 @@ int CacheSystem::InstRead(unsigned long long address, int numbytes)
 {
 	//Same as Read(), but we use the L1I cache instead
 	int status = 0;
-	//Step one: check the L1I cache
-	status = L1I.Read(address, numbytes);
+	//Step one: check alignment
+	int mod = address % 4;
+	if (mod <= (4 - numbytes))//will fit with one reference
+	{
+		status = L1I.Read(address - mod, 4);
+
+	}
+	else if (mod <= (8 - numbytes))//will take two references
+	{
+		status = InstRead(address - mod, 4);
+		
+		status += InstRead(address - mod + 4, 4);
+		return status;
+	}
+	else//it will take three references (intructions are never longer than 8 bytes)
+	{
+		status = InstRead(address - mod, 4);
+		status += InstRead(address - mod + 4, 4);
+		status += InstRead(address - mod + 8, 4);
+		return status;
+	
+	}
 	if (status > 0) return status; //We found it! Hooray!
 	else //We need to check the L2 cache
 	{
-		status = L2.Read(address, numbytes);
+		status = L2.Read(address, L1I.block_size);
 		if (status > 0)
 		{
 			//We found it!
 			//Write it to the L1 cache, then return the time it took.
-			int write_status = L1I.Write(address, numbytes, 0);
+			int write_status = L1I.Write(address, L1I.block_size, 0);
 			return (status + write_status + L1I.miss_time);
 		}
 		else
 		{
 			//Great. It's not in L1D OR L2. Time to "check" "main memory".
 			//Write it to the L1 cache, return the time it took.
-			int write_status = L1I.Write(address, numbytes, 0);
-			int mem_time = mem_sendaddr + mem_ready + (mem_chunktime * 64 / mem_chunksize);
+			
+			L2.Write(address, L2.block_size, 0);
+
+			L1I.Write(address, L1I.block_size, 0);
+			L1I.Write(address + L1I.block_size, L1I.block_size, 0);
+			
+			int L2_time = L2_transfer_time * (L1I.block_size / L2_bus_width) * 2;
+			int mem_time = mem_sendaddr + mem_ready + (mem_chunktime * L2.block_size / mem_chunksize);
 			L1I.transfers = L1I.transfers + 1;//we've transfered something from main mem
 			L2.transfers = L2.transfers + 1;
-		 	return (write_status + L1I.miss_time + L2.miss_time + mem_time);
+		 	return (L1I.miss_time + L2.miss_time + mem_time + L2_time + L1I.hit_time);
 		}
 	}
 }
 
 int CacheSystem::Write(unsigned long long address, int numbytes)
 {
+	//Same as Read(), but we use the L1I cache instead
+	int status = 0;
+	//Step one: check alignment
+	int mod = address % 4;
+	if (mod <= (4 - numbytes))//will fit with one reference
+	{
+		status = L1D.Write(address - mod, numbytes, 0);
 
-	int status;
-	status = L1D.Write(address, numbytes, 0);
+	}
+	else if (mod <= (8 - numbytes))//will take two references
+	{
+		status = Write(address - mod, 4 - mod);
+		
+		status += Write(address - mod + 4, numbytes - (4 - mod));
+		return status;
+	}
+	else//it will take three references (intructions are never longer than 8 bytes)
+	{
+		status = Write(address - mod, 4 - mod);
+		status += Write(address - mod + 4, 4);
+		status += Write(address - mod + 8, numbytes - (8 - mod));
+		return status;
+	
+	}
+
 //That's it! We'll push stuff to the next cache level later if we need to- that's the purpose of "Clean".
 return status;
 	
@@ -293,16 +361,17 @@ int CacheSystem::GetMMCost()
 
 BasicCache::BasicCache() //default constructor
 {
-	BasicCache(8192, 1, 32, 1 , 1);
+	BasicCache(8192, 1, 32, 1 , 1, 4);
 }
 
-BasicCache::BasicCache(int size_val, int assoc_val, int block_size_val, int hit_time_val, int miss_time_val) //Advanced constructor
+BasicCache::BasicCache(int size_val, int assoc_val, int block_size_val, int hit_time_val, int miss_time_val, int bus_width_val) //Advanced constructor
 {
 	cache_size = size_val;
 	assoc = assoc_val;
 	block_size = block_size_val;
 	hit_time = hit_time_val;
 	miss_time = miss_time_val;
+	bus_width = bus_width_val;
 
 	block_count = cache_size / (block_size); //Bytes / (bytes/block) = number of blocks we need
 
@@ -407,7 +476,8 @@ int BasicCache::Read(unsigned long long address, int numbytes)
 			UpdateLRU(index);
 			//Update hit count
 			hit_count = hit_count + 1;
-			return hit_time * numbytes;
+			if (numbytes < bus_width) numbytes = bus_width;
+			return hit_time * numbytes / bus_width;
 		}
 		else
 		{
@@ -530,7 +600,8 @@ int BasicCache::Write(unsigned long long address, int numbytes, int isDirty)
 		{
 			dirty_array[index] = 1;
 			UpdateLRU(index);
-			return hit_time * numbytes;
+			if (numbytes < bus_width) numbytes = bus_width;
+			return hit_time * numbytes / bus_width;
 		}
 		//It's not there. Is the place we want to write to valid?
 		if (valid_array[index] == 0)
@@ -539,7 +610,8 @@ int BasicCache::Write(unsigned long long address, int numbytes, int isDirty)
 			tag_array[index] = tag;
 			valid_array[index] = 1;
 			UpdateLRU(index);
-			return hit_time * numbytes;
+			if (numbytes < bus_width) numbytes = bus_width;
+			return hit_time * numbytes / bus_width;
 		}
 		else
 		{
@@ -562,7 +634,8 @@ int BasicCache::Write(unsigned long long address, int numbytes, int isDirty)
 			tag_array[index] = tag;
 			dirty_array[index] = 0;
 			UpdateLRU(index);
-			return hit_time * numbytes;
+			if (numbytes < bus_width) numbytes = bus_width;
+			return hit_time * numbytes / bus_width;
 		}
 	}
 
@@ -724,6 +797,26 @@ int BasicCache::GetAgeLRU(int index)
 	}
 
 	return age;
+}
+
+unsigned long BasicCache::getTag(int index)
+{
+	return tag_array[index];
+}
+
+int BasicCache::getValid(int index)
+{
+	return valid_array[index];
+}
+
+int BasicCache::getDirty(int index)
+{
+	return dirty_array[index];
+}
+
+int BasicCache::getIndexBits()
+{
+	return index_bits;
 }
 
 int BasicCache::getCacheSize()
