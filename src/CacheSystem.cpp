@@ -127,7 +127,7 @@ int CacheSystem::Read(unsigned long long address, int numbytes)
                         //Return the time it took
                         //Time to transfer from L2 to L1: 
                         int transfer_time = L2.hit_time * (L1D.block_size / L2_bus_width);
-                        return L1D.miss_time + transfer_time;
+                        return L1D.miss_time + transfer_time + L1D.hit_time;
 
                 }
                 else
@@ -144,7 +144,7 @@ int CacheSystem::Read(unsigned long long address, int numbytes)
                         //Return the time it took
                         int transfer_time = L2.hit_time * (L1D.block_size / L2_bus_width);
                         int mem_time = mem_sendaddr + mem_ready + (mem_chunktime * (L2.block_size / mem_chunksize));
-                        return L1D.miss_time + L2.miss_time + mem_time + transfer_time;
+                        return L1D.miss_time + L1D.hit_time + L2.miss_time + L2.hit_time + mem_time + transfer_time;
 
                 }
         }
