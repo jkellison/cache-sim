@@ -34,6 +34,8 @@ public:
 
 	int Read(unsigned long long address, int numbytes); //Read the data according to the instruction, return the time it took.
 	int Write(unsigned long long address, int numbytes, int isDirty); //Write the data/instruction, same thing
+	int CheckCache(unsigned long long address);
+	void UpdateCache(unsigned long long address, int isWrite);
 	int Evict(BasicCache& input_cache, int real_evict);
 
 	int getCacheSize();

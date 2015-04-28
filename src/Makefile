@@ -7,7 +7,7 @@ LDIR =../lib
 
 LIBS=-lm
 
-_DEPS = cacheSim.h CacheSystem.h
+_DEPS = CacheSystem.h
 DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
 
 _OBJ = cacheSim.o CacheSystem.o

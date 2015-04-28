@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include "CacheSystem.h"
-#include "cacheSim.h"
 #include <time.h>
 #include <math.h>
 
@@ -64,7 +63,6 @@ int main (int argc, char ** argv)
 	fprintf(log,"------------------------------------------------------------\r\n");
 	fprintf(log,"\t%s\tSimulation Results\r\n", argv[1]);
 
-	fprintf(log,"\t%s\tSimulation Results\r\n", argv[1]);
 	time(&now);
 
 	start = *localtime(&now);
@@ -258,7 +256,6 @@ int main (int argc, char ** argv)
 	
 	int i;
 	int n = pow(2, cache.L1I.getIndexBits());
-	printf("Index Size: %d\r\n", n);
 	for (i = 0; i < n; i++)
 	{
 		if (cache.L1I.getValid(i))
