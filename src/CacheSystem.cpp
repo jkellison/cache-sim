@@ -35,6 +35,7 @@ CacheSystem::CacheSystem(int L1_size, int L1_assoc_val, int L1_block_size_val, i
 int CacheSystem::Execute(char inst, unsigned long long address, int numbytes)
 {
 	int exec_time = 0;
+	int time;
 	/////////////////////////////////
 	//What kind of instruction is this?
 	int mod;
@@ -49,52 +50,53 @@ int CacheSystem::Execute(char inst, unsigned long long address, int numbytes)
 		mod = address % 4;
 		if (inst == 'R') //Data Read
 		{
-			exec_time = Read(address - mod, 4);
+			time = Read(address - mod, 4);
 			numbytes -= 4 - mod;
 			address += 4 - mod;
 			//Clean the caches/check the caches for items that need to be evicted to the next level.
-			exec_time = exec_time + Clean(); //later
+			time = time + Clean(); //later
 
 			instruction_count = instruction_count + 1;
 			if ((instruction_count % 380000) == 0)
 			{
-				exec_time = exec_time + flush();
+				time = time + flush();
 			}
 			
-			Rcycles += exec_time;
+			Rcycles += time;
 		}
 		if (inst == 'I') //Instruction read
 		{
-			exec_time = InstRead(address - mod, 4);
+			time = InstRead(address - mod, 4);
 			numbytes -= 4 - mod;
 			address += 4 - mod;
 			//Clean the caches/check the caches for items that need to be evicted to the next level.
-			exec_time = exec_time + Clean(); //later
+			time = time + Clean(); //later
 
 			instruction_count = instruction_count + 1;
 			if ((instruction_count % 380000) == 0)
 			{
-				exec_time = exec_time + flush();
+				time = time + flush();
 			}
 
-			Icycles += exec_time;
+			Icycles += time;
 		}
 		if (inst == 'W') //Write
 		{
-			exec_time = Write(address - mod, 4);
+			time = Write(address - mod, 4);
 			numbytes -= 4 - mod;
 			address += 4 - mod;
 			//Clean the caches/check the caches for items that need to be evicted to the next level.
-			exec_time = exec_time + Clean(); //later
+			time = time + Clean(); //later
 
 			instruction_count = instruction_count + 1;
 			if ((instruction_count % 380000) == 0)
 			{
-				exec_time = exec_time + flush();
+				time = time + flush();
 			}
 
-			Wcycles += exec_time;
+			Wcycles += time;
 		}
+		exec_time += time;
 
 	}
 
@@ -123,7 +125,7 @@ int CacheSystem::Read(unsigned long long address, int numbytes)
 
                         //"read in" from L2
                         L1D.UpdateCache(address, 0);
-                        L1D.transfers = L1D.transfers + 1;
+                        //L1D.transfers = L1D.transfers + 1;
                         //Return the time it took
                         //Time to transfer from L2 to L1: 
                         int transfer_time = L2.hit_time * (L1D.block_size / L2_bus_width);
@@ -173,9 +175,10 @@ int CacheSystem::InstRead(unsigned long long address, int numbytes)
 
                         //"read in" from L2
                         L1I.UpdateCache(address, 0);
-                        L1I.transfers = L1I.transfers + 1;
+                        //L1I.transfers = L1I.transfers + 1;
                         //Return the time it took
-                        //Time to transfer from L2 to L1: 
+                        //Time to transfer from L2 to L1:
+			L2.hit_count++; 
                         int transfer_time = L2.hit_time * (L1I.block_size / L2_bus_width);
                         return L1I.miss_time + transfer_time + L1I.hit_time;
 
@@ -183,7 +186,7 @@ int CacheSystem::InstRead(unsigned long long address, int numbytes)
                 else
                 {
                         //Great. It's not in L1D OR L2. Time to "check" "main memory".
-
+			L2.miss_count++;
                         //"read in" from "main memory" to L2
                         L2.transfers = L2.transfers + 1;
                         L2.UpdateCache(address, 0);
@@ -205,32 +208,42 @@ int CacheSystem::Write(unsigned long long address, int numbytes)
 {
 	//Same as Read(), but we use the L1I cache instead
 	int status = 0;
-	//Step one: check alignment
-	int mod = address % 4;
-	if (mod <= (4 - numbytes))//will fit with one reference
-	{
-		status = L1D.Write(address - mod, numbytes, 0);
 
-	}
-	else if (mod <= (8 - numbytes))//will take two references
-	{
-		status = Write(address - mod, 4 - mod);
-		
-		status += Write(address - mod + 4, numbytes - (4 - mod));
-		return status;
-	}
-	else//it will take three references (intructions are never longer than 8 bytes)
-	{
-		status = Write(address - mod, 4 - mod);
-		status += Write(address - mod + 4, 4);
-		status += Write(address - mod + 8, numbytes - (8 - mod));
-		return status;
-	
-	}
+	status = L1D.CheckCache(address);
 
-//That's it! We'll push stuff to the next cache level later if we need to- that's the purpose of "Clean".
-return status;
-	
+	if (status == 1)//it's there!
+	{
+		L1D.hit_count++;
+		L1D.UpdateCache(address, 1);
+		return L1D.hit_time;
+	}
+	else
+	{
+		L1D.miss_count++;
+		status = L2.CheckCache(address);
+		if (status == 1)//found the L2 entry
+		{
+			L2.hit_count++;
+			L1D.UpdateCache(address, 1);
+			int transfer_time = L2.hit_time * (L1D.block_size / L2_bus_width);
+                        return L1D.miss_time + transfer_time + L1D.hit_time;
+		}
+		else
+		{
+			L2.miss_count++;
+			L2.transfers = L2.transfers + 1;
+                        L2.UpdateCache(address, 0);
+                        //"read in" from L2 to L1
+                        L1D.transfers = L1D.transfers + 1;
+                        L1D.UpdateCache(address, 1);
+
+                        //Return the time it took
+                        int transfer_time = L2.hit_time * (L1D.block_size / L2_bus_width);
+                        int mem_time = mem_sendaddr + mem_ready + (mem_chunktime * (L2.block_size / mem_chunksize));
+                        return L1D.miss_time + L1D.hit_time + L2.hit_time + L2.miss_time + mem_time + transfer_time;
+
+		}
+	}
 }
 
 int CacheSystem::Clean()
@@ -859,9 +872,10 @@ void BasicCache::UpdateCache(unsigned long long address, int isWrite)
 	if (assoc == 1)
 	{
 
-		if (valid_array[index] == 0)
+		if ((valid_array[index] == 0) || (tag_array[index] = tag))
 		{
 			//It's not valid, we can replace it no problem.
+			//or updating an existing value
 			tag_array[index] = tag;
 			valid_array[index] = 1;
 			dirty_array[index] = isWrite;

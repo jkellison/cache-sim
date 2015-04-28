@@ -228,13 +228,17 @@ int main (int argc, char ** argv)
 
 	/* L2 stats*/
 
+	
 	fprintf(log, "Memory Level: L2\r\n");
 	fprintf(log, "\tHit Count = %lu\tMiss Count = %lu\r\n", cache.L2_Hits(), cache.L2_Misses());
 	fprintf(log, "\tTotal Requests = %d\r\n",cache.L2_Hits() + cache.L2_Misses());
 	
-	percent = (float)cache.L2_Hits()/(float)(cache.L2_Hits() + cache.L2_Misses())*100;
+	if(cache.L2_Hits() > 0) percent = (float)cache.L2_Hits()/(float)(cache.L2_Hits() + cache.L2_Misses())*100;
+	else percent = 0;
 	fprintf(log, "\tHit Rate = %2.1f\t",percent);
-	percent = (float)cache.L2_Misses()/(float)(cache.L2_Hits() + cache.L2_Misses())*100;
+
+	if(cache.L2_Misses() > 0) percent = (float)cache.L2_Misses()/(float)(cache.L2_Hits() + cache.L2_Misses())*100;
+	else percent = 0;
 	fprintf(log, "Miss Rate = %2.1f\r\n", percent);
 
 	fprintf(log, "\tKickouts = %lu;\tDirty Kickouts = %lu;\tTransfers = %lu\r\n",
@@ -267,7 +271,7 @@ int main (int argc, char ** argv)
 
 	fprintf(log, "Memory Level:\tL1D\r\n");
 	
-	n = 2 ^ cache.L1D.getIndexBits();
+	n = pow(2, cache.L1D.getIndexBits());
 	for (i = 0; i < n; i++)
 	{
 		if (cache.L1D.getValid(i))
@@ -279,7 +283,7 @@ int main (int argc, char ** argv)
 
 	fprintf(log, "Memory Level:\tL2\r\n");
 	
-	n = 2 ^ cache.L2.getIndexBits();
+	n = pow(2, cache.L2.getIndexBits());
 	for (i = 0; i < n; i++)
 	{
 		if (cache.L2.getValid(i))

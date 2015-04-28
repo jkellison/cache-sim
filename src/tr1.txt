@@ -1,11 +1,11 @@
 ------------------------------------------------------------
 	tr1.txt	Simulation Results
-	Start time: 2015-4-28 0:6:5
+	Start time: 2015-4-28 1:19:38
 ------------------------------------------------------------
 D-cache size = 8192 : ways = 1 : block size = 32
 I-cache size = 8192 : ways = 1 : block size = 32
 L2-cache size = 32768 : ways = 1 : block size = 64
-Execution Time = 376;	Total refs:10
+Execution Time = 564;	Total refs:10
 Flush Time = 0
 Inst refs = 6;	Data refs = 4
 
@@ -17,12 +17,12 @@ Total = 	10
 
 Total cycles for activities: [Percentage]
 Reads = 	0	[0.0%]
-Writes = 	8	[2.1%]
-Inst. = 	373	[99.2%]
-Total = 	376
+Writes = 	191	[33.9%]
+Inst. = 	373	[66.1%]
+Total = 	564
 
 Average cycles per activity:
-	Read = 0.0;	Write = 2.0;	Inst. = 62.0
+	Read = 0.0;	Write = 47.0;	Inst. = 62.0
 	Ideal: Exec. Time = 16; CPI = 2.7
 	Ideal Mis-aligned: Exec. Time = 16; CPI = 2.7
 
@@ -34,17 +34,17 @@ Memory Level: L1I
 	Flush Kickouts = 0
 
 Memory Level: L1D
-	Hit Count = 0	Miss Count = 0
-	Total Requests = 0
-	Hit Rate = -nan	Miss Rate = -nan
-	Kickouts = 0;	Dirty Kickouts = 0;	Transfers = 0
+	Hit Count = 7	Miss Count = 1
+	Total Requests = 8
+	Hit Rate = 87.5	Miss Rate = 12.5
+	Kickouts = 0;	Dirty Kickouts = 0;	Transfers = 1
 	Flush Kickouts = 0
 
 Memory Level: L2
-	Hit Count = 0	Miss Count = 0
-	Total Requests = 0
-	Hit Rate = -nan	Miss Rate = -nan
-	Kickouts = 0;	Dirty Kickouts = 0;	Transfers = 2
+	Hit Count = 0	Miss Count = 3
+	Total Requests = 3
+	Hit Rate = 0.0	Miss Rate = 100.0
+	Kickouts = 0;	Dirty Kickouts = 0;	Transfers = 3
 	Flush Kickouts = 0
 
 L1 Cache Cost (Icache $200) + (Dcache $200) = $400
@@ -60,8 +60,12 @@ Index :	0 | V: 1	D:0	Tag:	 fc0e7112	|
 Index :	35 | V: 1	D:0	Tag:	 fc0e7110	|
 
 Memory Level:	L1D
+Index :	3e | V: 1	D:1	Tag:	 fffad424	|
 
 Memory Level:	L2
+Index :	1a | V: 1	D:0	Tag:	 ff039c44	|
+Index :	1f | V: 1	D:0	Tag:	 fffeb509	|
+Index :	100 | V: 1	D:0	Tag:	 ff039c44	|
 
-End time: 2015-4-28 0:6:5
+End time: 2015-4-28 1:19:38
 Total run time: 0
