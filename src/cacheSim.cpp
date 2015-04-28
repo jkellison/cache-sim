@@ -2,7 +2,7 @@
 #include "CacheSystem.h"
 #include "cacheSim.h"
 #include <time.h>
-
+#include <math.h>
 
 int main (int argc, char ** argv)
 {
@@ -257,12 +257,13 @@ int main (int argc, char ** argv)
 	fprintf(log, "Memory Level:\tL1I\r\n");
 	
 	int i;
-	int n = 2 ^ cache.L1I.getIndexBits();
+	int n = pow(2, cache.L1I.getIndexBits());
+	printf("Index Size: %d\r\n", n);
 	for (i = 0; i < n; i++)
 	{
 		if (cache.L1I.getValid(i))
 		{
-			fprintf(log, "Index :\t%2x | V: 1\tD:%d\tTag:\t%9x\t|\r\n",i, cache.L1I.getDirty(i), cache.L1I.getTag(i)); 
+			fprintf(log, "Index :\t%x | V: 1\tD:%d\tTag:\t%9x\t|\r\n",i, cache.L1I.getDirty(i), cache.L1I.getTag(i)); 
 		}
 	}
 	fprintf(log,"\r\n");

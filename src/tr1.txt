@@ -1,7 +1,7 @@
 ------------------------------------------------------------
 	tr1.txt	Simulation Results
 	tr1.txt	Simulation Results
-	Start time: 2015-4-27 22:26:20
+	Start time: 2015-4-27 23:3:0
 ------------------------------------------------------------
 D-cache size = 8192 : ways = 1 : block size = 32
 I-cache size = 8192 : ways = 1 : block size = 32
@@ -57,12 +57,12 @@ Flushes = 0 :	Invalidates = 0
 Cache Final Contents - Index and Tag values are in HEX
 
 Memory Level:	L1I
-Index :	 0 | V: 1	D:0	Tag:	 fc0e7112	|
-Index :	 1 | V: 1	D:0	Tag:	 fc0e7112	|
+Index :	0 | V: 1	D:0	Tag:	 fc0e7112	|
+Index :	35 | V: 1	D:0	Tag:	 fc0e7110	|
 
 Memory Level:	L1D
 
 Memory Level:	L2
 
-End time: 2015-4-27 22:26:20
+End time: 2015-4-27 23:3:0
 Total run time: 0

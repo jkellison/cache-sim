@@ -182,7 +182,7 @@ int CacheSystem::InstRead(unsigned long long address, int numbytes)
 			L2.Write(address, L2.block_size, 0);
 
 			L1I.Write(address, L1I.block_size, 0);
-			L1I.Write(address + L1I.block_size, L1I.block_size, 0);
+		//	L1I.Write(address + L1I.block_size, L1I.block_size, 0);
 			
 			int L2_time = L2_transfer_time * (L1I.block_size / L2_bus_width) * 2;
 			int mem_time = mem_sendaddr + mem_ready + (mem_chunktime * L2.block_size / mem_chunksize);
@@ -373,6 +373,7 @@ BasicCache::BasicCache(int size_val, int assoc_val, int block_size_val, int hit_
 	miss_time = miss_time_val;
 	bus_width = bus_width_val;
 
+
 	block_count = cache_size / (block_size); //Bytes / (bytes/block) = number of blocks we need
 
 	tag_array = new unsigned long[block_count];
@@ -395,6 +396,7 @@ BasicCache::BasicCache(int size_val, int assoc_val, int block_size_val, int hit_
 	index_bits = SetIndexBits();
 	tag_bits = SetTagBits();
 
+	index_mask = pow(2, index_bits) - 1;//index_bits are a power of 2, so subtracting 1 gives mask
 }
 
 int BasicCache::SetTagBits()
@@ -527,9 +529,9 @@ int BasicCache::Write(unsigned long long address, int numbytes, int isDirty)
 
 	unsigned long tag = (address >> (index_bits + offset_bits)); //Shift right to get the tag bits
 	//unsigned int index = (address << tag_bits) >> (tag_bits + offset_bits); //Shift left to get rid of the tag, shift right to get rid of offest bits
-	unsigned int index = (address >> offset_bits);
-	index = index << (32 - index_bits);
-	index = index >> (32 - index_bits);
+	unsigned int index = (address >> offset_bits) & index_mask;
+//	index = index << (32 - index_bits);
+//	index = index >> (32 - index_bits);
 	
 
 	//Fully Associative

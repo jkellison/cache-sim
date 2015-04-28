@@ -25,6 +25,8 @@ public:
 
 	int block_size = 32;
 
+	int index_mask;
+
 	////////functions/////////
 	BasicCache(); //Basic/default constructor
 	BasicCache(int size_kb, int assoc_val, int block_size_val, int hit_time_val, int miss_time_val, int bus_width_val); //Advanced constructor
@@ -60,7 +62,6 @@ private:
 	int tag_bits;
 	int index_bits;
 	int offset_bits;
-
 
 	long long * LRU_array;
 
