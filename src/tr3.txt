@@ -1,0 +1,93 @@
+------------------------------------------------------------
+	tr3.txt	Simulation Results
+	Start time: 2015-4-28 11:12:16
+------------------------------------------------------------
+D-cache size = 8192 : ways = 1 : block size = 32
+I-cache size = 8192 : ways = 1 : block size = 32
+L2-cache size = 32768 : ways = 1 : block size = 64
+Execution Time = 2350;	Total refs:50
+Flush Time = 0
+Inst refs = 36;	Data refs = 11
+
+Number of reference types: [Percentage]
+Reads = 	3	[6.0%]
+Writes = 	11	[22.0%]
+Inst. = 	36	[72.0%]
+Total = 	50
+
+Total cycles for activities: [Percentage]
+Reads = 	555	[23.6%]
+Writes = 	953	[40.6%]
+Inst. = 	842	[35.8%]
+Total = 	2350
+
+Average cycles per activity:
+	Read = 185.0;	Write = 86.6;	Inst. = 65.3
+	Ideal: Exec. Time = 86; CPI = 2.4
+	Ideal Mis-aligned: Exec. Time = 126; CPI = 3.5
+
+Memory Level: L1I
+	Hit Count = 55	Miss Count = 7
+	Total Requests = 62
+	Hit Rate = 88.7	Miss Rate = 11.3
+	Kickouts = 0;	Dirty Kickouts = 0;	Transfers = 7
+	Flush Kickouts = 0
+
+Memory Level: L1D
+	Hit Count = 19	Miss Count = 9
+	Total Requests = 28
+	Hit Rate = 67.9	Miss Rate = 32.1
+	Kickouts = 0;	Dirty Kickouts = 0;	Transfers = 9
+	Flush Kickouts = 0
+
+Memory Level: L2
+	Hit Count = 4	Miss Count = 12
+	Total Requests = 16
+	Hit Rate = 25.0	Miss Rate = 75.0
+	Kickouts = 0;	Dirty Kickouts = 0;	Transfers = 12
+	Flush Kickouts = 0
+
+L1 Cache Cost (Icache $200) + (Dcache $200) = $400
+L2 Cache Cost = $50;	Memory Cost = $222	Total cost = $672
+Flushes = 0 :	Invalidates = 0
+
+------------------------------------------------------------
+
+Cache Final Contents - Index and Tag values are in HEX
+
+Memory Level:	L1I
+Index :	0 | V: 1	D:0	Tag:	 fc0e7112	|
+Index :	1 | V: 1	D:0	Tag:	 fc0e7112	|
+Index :	2 | V: 1	D:0	Tag:	 fc0e7112	|
+Index :	3 | V: 1	D:0	Tag:	 fc0e7112	|
+Index :	4 | V: 1	D:0	Tag:	 fc0e7112	|
+Index :	5 | V: 1	D:0	Tag:	 fc0e7112	|
+Index :	35 | V: 1	D:0	Tag:	 fc0e7110	|
+
+Memory Level:	L1D
+Index :	3d | V: 1	D:1	Tag:	 fffad424	|
+Index :	3e | V: 1	D:1	Tag:	 fffad424	|
+Index :	4e | V: 1	D:1	Tag:	 fc0e7221	|
+Index :	4f | V: 1	D:1	Tag:	 fc0e7221	|
+Index :	54 | V: 1	D:1	Tag:	 fc0e7221	|
+Index :	dc | V: 1	D:0	Tag:	 fc0e7220	|
+Index :	e6 | V: 1	D:1	Tag:	 fc0e7220	|
+Index :	f1 | V: 1	D:0	Tag:	 fc0e7220	|
+Index :	fd | V: 1	D:0	Tag:	 fc0e7220	|
+
+Memory Level:	L2
+Index :	1a | V: 1	D:0	Tag:	 ff039c44	|
+Index :	1e | V: 1	D:0	Tag:	 fffeb509	|
+Index :	1f | V: 1	D:0	Tag:	 fffeb509	|
+Index :	6e | V: 1	D:0	Tag:	 ff039c88	|
+Index :	73 | V: 1	D:0	Tag:	 ff039c88	|
+Index :	78 | V: 1	D:0	Tag:	 ff039c88	|
+Index :	7e | V: 1	D:0	Tag:	 ff039c88	|
+Index :	a7 | V: 1	D:0	Tag:	 ff039c88	|
+Index :	aa | V: 1	D:0	Tag:	 ff039c88	|
+Index :	100 | V: 1	D:0	Tag:	 ff039c44	|
+Index :	101 | V: 1	D:0	Tag:	 ff039c44	|
+Index :	102 | V: 1	D:0	Tag:	 ff039c44	|
+
+End time: 2015-4-28 11:12:16
+Total run time: 0

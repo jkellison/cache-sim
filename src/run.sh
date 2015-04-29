@@ -1,2 +1,2 @@
-cat ../traces/tr2 | ./cacheSim tr2.txt
-cat tr2.txt
+cat ../traces/tr6 | ./cacheSim tr6.txt
+cat tr6.txt
