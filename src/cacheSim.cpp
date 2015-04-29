@@ -265,7 +265,7 @@ int main (int argc, char ** argv)
 	{
 		if (cache.L1I.getValid(i))
 		{
-			fprintf(log, "Index :\t%x | V: 1\tD:%d\tTag:\t%9x\t|\r\n",i, cache.L1I.getDirty(i), cache.L1I.getTag(i)); 
+			fprintf(log, "Index :\t%x | V: 1\tD:%d\tTag:\t%llx\t|\r\n",i, cache.L1I.getDirty(i), cache.L1I.getTag(i)); 
 		}
 	}
 	fprintf(log,"\r\n");
@@ -277,7 +277,7 @@ int main (int argc, char ** argv)
 	{
 		if (cache.L1D.getValid(i))
 		{
-			fprintf(log, "Index :\t%2x | V: 1\tD:%d\tTag:\t%9x\t|\r\n",i, cache.L1D.getDirty(i), cache.L1D.getTag(i)); 
+			fprintf(log, "Index :\t%x | V: 1\tD:%d\tTag:\t%llx\t|\r\n",i, cache.L1D.getDirty(i), cache.L1D.getTag(i)); 
 		}
 	}
 	fprintf(log,"\r\n");
@@ -289,7 +289,7 @@ int main (int argc, char ** argv)
 	{
 		if (cache.L2.getValid(i))
 		{
-			fprintf(log, "Index :\t%2x | V: 1\tD:%d\tTag:\t%9x\t|\r\n",i, cache.L2.getDirty(i), cache.L2.getTag(i)); 
+			fprintf(log, "Index :\t%x | V: 1\tD:%d\tTag:\t%llx\t|\r\n",i, cache.L2.getDirty(i), cache.L2.getTag(i)); 
 		}
 	}
 	fprintf(log,"\r\n");

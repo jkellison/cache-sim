@@ -36,6 +36,7 @@ public:
 	int Write(unsigned long long address, int numbytes, int isDirty); //Write the data/instruction, same thing
 	int CheckCache(unsigned long long address);
 	void UpdateCache(unsigned long long address, int isWrite);
+	int KickCheck(unsigned long long address, BasicCache& out);
 	int Evict(BasicCache& input_cache, int real_evict);
 
 	int getCacheSize();
@@ -106,6 +107,7 @@ class CacheSystem
 		int getRcycles();
 		int getWcycles();
 		int getIcycles();
+
 
 		unsigned long L1D_Hits();
 		unsigned long L1D_Misses();
