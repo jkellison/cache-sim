@@ -65,11 +65,6 @@ int CacheSystem::Execute(char inst, unsigned long long address, int numbytes)
 			//Clean the caches/check the caches for items that need to be evicted to the next level.
 
 			//time = time + Clean(); //later
-			instruction_count = instruction_count + 1;
-			if ((instruction_count % 380000) == 0)
-			{
-				time = time + flush();
-			}
 			
 			Rcycles += time;
 		}
@@ -79,8 +74,7 @@ int CacheSystem::Execute(char inst, unsigned long long address, int numbytes)
 			//Clean the caches/check the caches for items that need to be evicted to the next level.
 
 			//time = time + Clean(); //late
-			instruction_count = instruction_count + 1;
-			if ((instruction_count % 380000) == 0)
+			if ((Irefs % 380000) == 0)
 			{
 				time = time + flush();
 			}
@@ -93,12 +87,7 @@ int CacheSystem::Execute(char inst, unsigned long long address, int numbytes)
 			//Clean the caches/check the caches for items that need to be evicted to the next level.
 
 			//time = time + Clean(); //late
-			instruction_count = instruction_count + 1;
-			if ((instruction_count % 380000) == 0)
-			{
-				time = time + flush();
-			}
-
+		
 			Wcycles += time;
 		}
 		i++;
@@ -107,6 +96,7 @@ int CacheSystem::Execute(char inst, unsigned long long address, int numbytes)
 		numbytes -= 4 - mod;
 		mod = 0;
 	}
+
 
 
 	return exec_time;
@@ -273,14 +263,17 @@ int CacheSystem::Clean()
 
 	//Since transferring stuff takes time, this will return the amount of time
 	//taken to move everything.
-	int static time = 0;
+	int time = 0;
 	//Since the L2 stuff doesn't actually go anywhere, we just need to run this on L1I and L1D
 	//We still need to check if something needs to be transferred, though.
 	//L2
 	time = 0;
 	//L1
+	static int pause = 0;
 	if (L1D.write_item != -1)
 	{
+		if(!pause) printf("Time of first kickout %d and address %llx\r\n",Rcycles + Wcycles + Icycles, L1D.write_item);
+		pause = 1;
 		if(L2.CheckCache(L1D.write_item))
 		{
 			L2.hit_count++;
@@ -318,17 +311,43 @@ int CacheSystem::flush()
 	//We'll run this on L2 first to "move" the bits to "main memory". With L2 freshly invalidated, we can move
 	//up the stuff from the L1 caches easy.
 
-	int L2_mem_count = L2.Evict(L2, 0); //(we're not going to actually write stuff so it's OK to use L2 as the first arg).
-	int L1D_L2_count = L1D.Evict(L2, 1);
-	int L1I_L2_count = L1I.Evict(L2, 1);
+//	int L2_mem_count = L2.Evict(L2, 0); //(we're not going to actually write stuff so it's OK to use L2 as the first arg).
+//	int L1D_L2_count = L1D.Evict(L2, 1);
+//	int L1I_L2_count = L1I.Evict(L2, 1);
+	unsigned long long address = 1;
+	int time = 0;
 
+	static int pause = 0;
 
-	int L2_mem_time = mem_sendaddr + mem_ready + (mem_chunktime * (L2_mem_count*L2.block_size) / mem_chunksize);
-	int L1D_L2_time = L2.hit_time * (L1D_L2_count * (L1D.block_size)) / L2_bus_width;
-	int L1I_L2_time = L2.hit_time * (L1I_L2_count * (L1I.block_size)) / L2_bus_width;
-
-	int time = L2_mem_count + L1D_L2_time + L1I_L2_time;
-
+	while (address > 0)
+	{
+		address = L1D.Evict(L2, 1);
+		if (L2.CheckCache(address))
+		{
+			time += Clean();
+			L2.hit_count++;
+			L1D.kickouts_flush++;
+			time += L2.hit_time * (L1D.block_size/L2_bus_width) + L2.hit_time;
+		}
+		else
+		{
+			time += Clean();
+			L2.miss_count++;
+			time += mem_sendaddr + mem_ready + mem_chunktime * (L2.block_size/ mem_chunksize) + L2.miss_time + L2.hit_time;
+			
+		}
+		
+		L2.UpdateCache(address, 1);
+	if(!pause) printf("Flush address %llx\r\n", address);
+	}
+pause = 1;
+	int L2_mem_time = mem_sendaddr + mem_ready + (mem_chunktime * (L2.block_size) / mem_chunksize);
+	
+	while (L2.Evict(L2, 0))
+	{
+		time += L2_mem_time;
+		L2.kickouts_flush++; 	
+	}
 
 	flush_count = flush_count + 1;
 	return time; //I don't think we need to return anything here, but I'll leave this in case I change my mind.
@@ -1033,35 +1052,49 @@ int BasicCache::KickCheck(unsigned long long address, BasicCache& top)
 	return 0;
 }
 */
-int BasicCache::Evict(BasicCache& input_cache, int real_evict)
+unsigned long long BasicCache::Evict(BasicCache& input_cache, int real_evict)
 {
 	//Invalidates all items in the cache.
 	//if one of the items is dirty, it's written to the next level.
 	//If real_evict is 1, then we're going to actually write. If not, we'll just pretend and say we did.
 	//Returns number of evicts.
-
+/*
 	int evict_count = 0;
 	for (int i = 0; i < block_count; i++)
 	{
-		valid_array[i] = 0;
-		if (dirty_array[i] == 1)
+		if ((valid_array[i] == 1) && (dirty_array[i] == 1))
 		{
-			evict_count = 1;
+			evict_count += 1;
 			//Write it to the next level
 			if (real_evict == 1)
 			{
 				//Reconstruct the address
 				long long tag = tag_array[i];
 				tag = (tag << (index_bits + offset_bits)) + (i << offset_bits);
-				int numbytes = (block_size); //number of bytes in a block
-
-				input_cache.Write(tag, numbytes, 1);
+				input_cache.CheckCache(tag);
+				
+				input_cache.UpdateCache(tag, 1);
 				kickouts_flush = kickouts_flush + 1;
 			}
 			dirty_array[i] = 0;
 		}
+		valid_array[i] = 0;
+	}*/
+	int i;
+	for (i = 0; i < block_count; i++)//find first valid block
+	{
+		if(valid_array[i] == 1)
+		{
+			valid_array[i] = 0;
+			break;
+		}
 	}
-	return evict_count; //vOv
+	if (i == block_count)
+	{
+		return 0;
+	}
+
+	return ((tag_array[i] << index_bits) + i) << offset_bits; //return address of evicted block
 }
 
 void BasicCache::UpdateLRU(int index)

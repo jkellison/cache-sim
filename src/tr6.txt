@@ -1,6 +1,6 @@
 ------------------------------------------------------------
 	tr6.txt	Simulation Results
-	Start time: 2015-4-29 4:29:19
+	Start time: 2015-4-29 5:56:26
 ------------------------------------------------------------
 D-cache size = 8192 : ways = 1 : block size = 32
 I-cache size = 8192 : ways = 1 : block size = 32
@@ -234,5 +234,5 @@ Index :	1e7 | V: 1	D:0	Tag:	ff039c43	|
 Index :	1e8 | V: 1	D:0	Tag:	ff039c43	|
 Index :	1e9 | V: 1	D:0	Tag:	ff039c43	|
 
-End time: 2015-4-29 4:29:19
+End time: 2015-4-29 5:56:26
 Total run time: 0

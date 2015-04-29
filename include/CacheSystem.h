@@ -37,7 +37,7 @@ public:
 	int CheckCache(unsigned long long address);
 	void UpdateCache(unsigned long long address, int isWrite);
 	int KickCheck(unsigned long long address, BasicCache& out);
-	int Evict(BasicCache& input_cache, int real_evict);
+	unsigned long long Evict(BasicCache& input_cache, int real_evict);
 
 	int getCacheSize();
 	int getAssoc();
