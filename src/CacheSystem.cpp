@@ -8,9 +8,11 @@ using namespace std;
 //Our default constructor
 CacheSystem::CacheSystem()
 {
-	CacheSystem(8192, 1, 32768, 1);
+	CacheSystem(8192, 1, 32, 1, 1, 32768, 1, 64, 5, 7, 5, 16);
 }
-CacheSystem::CacheSystem(int L1_size, int L1_assoc_val, int L2_size, int L2_assoc_val)
+CacheSystem::CacheSystem(int L1_size, int L1_assoc_val, int L1_block_size_val, int L1_hit_time_val, int L1_miss_time_val,
+			 int L2_size, int L2_assoc_val, int L2_block_size_val, int L2_hit_time_val, int L2_miss_time_val,
+			 int L2_transfer_time_val, int L2_bus_width_val)
 {
 	//Not sure how to tackle this ATM, but we can set some values here anyway for later
 	
@@ -22,199 +24,245 @@ CacheSystem::CacheSystem(int L1_size, int L1_assoc_val, int L2_size, int L2_asso
 	//BasicCache L1D(L1_size, L1_assoc_val, 32, 1, 1);
 	//BasicCache L2(L2_size, L2_assoc_val, 64, 5, 7);
 
-	L1D = BasicCache(L1_size, L1_assoc_val, 32, 1, 1);
-	L1I = BasicCache(L1_size, L1_assoc_val, 32, 1, 1);
-	L2 = BasicCache(L2_size, L2_assoc_val, 64, 5, 7);
-}
+	L1D = BasicCache(L1_size, L1_assoc_val, L1_block_size_val, L1_hit_time_val, L1_miss_time_val, 4);
+	L1I = BasicCache(L1_size, L1_assoc_val, L1_block_size_val, L1_hit_time_val, L1_miss_time_val, 4);
+	L2 = BasicCache(L2_size, L2_assoc_val, L2_block_size_val, L2_hit_time_val, L2_miss_time_val, L2_bus_width_val);
 
+	L2_transfer_time = L2_transfer_time_val;
+	L2_bus_width = L2_bus_width_val;
+}
+//I know it's messy, but repeating the clean and flush check makes keeping track of cycles easier
 int CacheSystem::Execute(char inst, unsigned long long address, int numbytes)
 {
 	int exec_time = 0;
+	int time;
 	/////////////////////////////////
 	//What kind of instruction is this?
-	
-	for (int i = 0; i <= ((numbytes - 1) / 4); i++)
-	{
+	int mod;
+	int i = 0;
 
+	int old_bytes;
+	old_bytes = numbytes;
+
+
+	if (inst == 'R') Rrefs++;
+	if (inst == 'I') Irefs++;
+	if (inst == 'W') Wrefs++;
+	
+	mod = address % 4;
+/*
+	if((((address % 32) + numbytes) > 31) && ((inst == 'R') || (inst == 'W')))
+	{
+		 printf("This is the problem child %d %llx\r\n",old_bytes, address);
+	}
+*/
+	while (numbytes > 0)
+	{
+		address -= mod;
 		if (inst == 'R') //Data Read
 		{
-			exec_time = exec_time + Read(address, 4);
+			time = Read(address, 4);
+			//Clean the caches/check the caches for items that need to be evicted to the next level.
+
+			//time = time + Clean(); //later
+
+			Rcycles += time;
 		}
 		if (inst == 'I') //Instruction read
 		{
-			exec_time = exec_time + InstRead(address, 4); //could probably use normal read(), but ehhhhhh
+			time = InstRead(address, 4);
+			//Clean the caches/check the caches for items that need to be evicted to the next level.
+
+			//time = time + Clean(); //late
+			/*
+			if ((Irefs % 380000) == 0)
+			{
+				time = time + flush();
+			}
+			*/
+			Icycles += time;
 		}
 		if (inst == 'W') //Write
 		{
-			exec_time = exec_time + Write(address, 4);
-		}
-			
-	}
-	
-	//Clean the caches/check the caches for items that need to be evicted to the next level.
-	exec_time = exec_time + Clean(); //later
+			time = Write(address, 4);
+			//Clean the caches/check the caches for items that need to be evicted to the next level.
 
-	instruction_count = instruction_count + 1;
-	if ((instruction_count % 380000) == 0)
-	{
-		exec_time = exec_time + flush();
+			//time = time + Clean(); //late
+
+		
+			Wcycles += time;
+		}
+
+		if (((Irefs + Rrefs + Wrefs) % 380000) == 0)
+		{
+			time = time + flush();
+		}
+
+		i++;
+		exec_time += time;
+		address += 4;
+		numbytes -= 4 - mod;
+		mod = 0;
 	}
+
+
+
 	return exec_time;
 }
 
-
 int CacheSystem::Read(unsigned long long address, int numbytes)
 {
-	//Same as Read(), but we use the L1D cache instead
-	int status = 0;
-	//Step one: check the L1D cache
-	status = L1D.CheckCache(address);
-	if (status == 1)
-	{
-		//It's there. All we need to do is return the hit time.
-		L1D.hit_count = L1D.hit_count + 1;
-		return L1D.hit_time;
-	}
-	else //We need to check the L2 cache
-	{
-		L1D.miss_count = L1D.miss_count + 1;
-		status = L2.CheckCache(address);
+        //Same as Read(), but we use the L1D cache instead
+        int status = 0;
+
+	int time = 0;
+        //Step one: check the L1D cache
+        status = L1D.CheckCache(address);
+	time = Clean();
+        if (status == 1)
+        {
+                //It's there. All we need to do is return the hit time.
+                L1D.hit_count = L1D.hit_count + 1;
+                return L1D.hit_time;
+        }
+        else //L1 miss. Now check for kickout
+        {
+                L1D.miss_count = L1D.miss_count + 1;
+                status = L2.CheckCache(address);
+               	time += Clean();
 		if (status == 1)
-		{
-			//We found it!
+                {
+                        //We found it!
 
-			//"read in" from L2
-			L1D.UpdateCache(address, 0);
+                        //"read in" from L2
+                        L1D.UpdateCache(address, 0);
 			L1D.transfers = L1D.transfers + 1;
-			//Return the time it took
-			//Time to transfer from L2 to L1: 
+                        //Return the time it took
+                        //Time to transfer from L2 to L1: 
+	                L2.hit_count++;        
 			int transfer_time = L2.hit_time * (L1D.block_size / L2_bus_width);
-			return L1D.miss_time + transfer_time;
+                        return L1D.miss_time + transfer_time + L1D.hit_time + L2.hit_time + time;
 
-		}
-		else
-		{
-			//Great. It's not in L1D OR L2. Time to "check" "main memory".
+                }
+                else
+                {
 
-			//"read in" from "main memory" to L2
-			L2.transfers = L2.transfers + 1;
-			L2.UpdateCache(address, 0);
-			//"read in" from L2 to L1
-			L1D.transfers = L1D.transfers + 1;
-			L1D.UpdateCache(address, 0);
+                        //Great. It's not in L1D OR L2. Time to "check" "main memory".
+						L2.miss_count++;
+                        //"read in" from "main memory" to L2
+                        L2.transfers = L2.transfers + 1;
+                        L2.UpdateCache(address, 0);
+                        //"read in" from L2 to L1
+                        L1D.transfers = L1D.transfers + 1;
+                        L1D.UpdateCache(address, 0);
+                        //Return the time it took
+                        int transfer_time = L2.hit_time * (L1D.block_size / L2_bus_width);
+                        int mem_time = mem_sendaddr + mem_ready + (mem_chunktime * (L2.block_size / mem_chunksize));
+                        return L1D.miss_time + L1D.hit_time + L2.hit_time + L2.miss_time + mem_time + transfer_time + time;
 
-			//Return the time it took
-			int transfer_time = L2.hit_time * (L1D.block_size / L2_bus_width);
-			int mem_time = mem_sendaddr + mem_ready + (mem_chunktime * (L2.block_size / mem_chunksize));
-			return L1D.miss_time + L2.miss_time + mem_time + transfer_time;
-
-		}
-	}
+                }
+        }
 
 }
-
 int CacheSystem::InstRead(unsigned long long address, int numbytes)
 {
-	
-	//Same as Read(), but we use the L1I cache instead
-	int status = 0;
-	//Step one: check the L1D cache
-	status = L1I.CheckCache(address);
-	if (status == 1)
-	{
-		//It's there. All we need to do is return the hit time.
-		L1I.hit_count = L1I.hit_count + 1;
-		return L1I.hit_time;
-	}
-	else //We need to check the L2 cache
-	{
-		L1I.miss_count = L1I.miss_count + 1;
-		status = L2.CheckCache(address);
-		if (status == 1)
-		{
-			//We found it!
-			
-			//"read in" from L2
-			L1I.UpdateCache(address, 0); 
+
+        //Same as Read(), but we use the L1I cache instead
+        int status = 0;
+
+	int time = 0;
+        //Step one: check the L1D cache
+        status = L1I.CheckCache(address);
+	time = Clean();
+        if (status == 1)
+        {
+                //It's there. All we need to do is return the hit time.
+                L1I.hit_count = L1I.hit_count + 1;
+                return L1I.hit_time;
+        }
+        else //We need to check the L2 cache
+        {
+                L1I.miss_count = L1I.miss_count + 1;
+                status = L2.CheckCache(address);
+		time += Clean();
+                if (status == 1)
+                {
+                        //We found it!
+                        //"read in" from L2
+                        L1I.UpdateCache(address, 0);
 			L1I.transfers = L1I.transfers + 1;
-			//Return the time it took
-			//Time to transfer from L2 to L1: 
-			int transfer_time = L2.hit_time * (L1I.block_size / L2_bus_width);
-			return L1I.miss_time + transfer_time + L1I.hit_time;
+                        //Return the time it took
+                        //Time to transfer from L2 to L1:
+			L2.hit_count++; 
+                        int transfer_time = L2.hit_time * (L1I.block_size / L2_bus_width);
+                        return L1I.miss_time + transfer_time + L1I.hit_time + L2.hit_time + time;
 
-		}
-		else
-		{
-			//Great. It's not in L1D OR L2. Time to "check" "main memory".
+                }
+                else
+                {
+                        //"read in" from L2
+                        //Great. It's not in L1D OR L2. Time to "check" "main memory".
+			L2.miss_count++;
+                        //"read in" from "main memory" to L2
+                        L2.transfers = L2.transfers + 1;
+                        L2.UpdateCache(address, 0);
+                        L1I.transfers = L1I.transfers + 1;
+                        L1I.UpdateCache(address, 0);
+                        //Return the time it took
+                        int transfer_time = L2.hit_time * (L1I.block_size / L2_bus_width);
+                        int mem_time = mem_sendaddr + mem_ready + (mem_chunktime * (L2.block_size / mem_chunksize));
+                        return L1I.miss_time + L1I.hit_time + L2.hit_time + L2.miss_time + mem_time + transfer_time + time;
 
-			//"read in" from "main memory" to L2
-			L2.transfers = L2.transfers + 1;
-			L2.UpdateCache(address, 0);
-			//"read in" from L2 to L1
-			L1I.transfers = L1I.transfers + 1;
-			L1I.UpdateCache(address, 0);
-
-			//Return the time it took
-			int transfer_time = L2.hit_time * (L1I.block_size / L2_bus_width);
-			int mem_time = mem_sendaddr + mem_ready + (mem_chunktime * (L2.block_size / mem_chunksize));
-			return L1I.miss_time + L1I.hit_time + L2.hit_time + L2.miss_time + mem_time + transfer_time;
-
-		}
-	}
+                }
+        }
 
 }
 
 int CacheSystem::Write(unsigned long long address, int numbytes)
 {
-	//Write to the L1 cache. IMMEDIATELY.
-	//int status = L1D.Write(address, numbytes, 0);
-	//That's it! We'll push stuff to the next cache level later if we need to- that's the purpose of "Clean".
-	//return status;
+	//Same as Read(), but we use the L1I cache instead
+	int status = 0;
 
-	//disregard, I am a dumb
+	int time = 0;
 
-	//First: check if it's in the L1 cache.
-	int status = L1D.CheckCache(address);
-	if (status == 1)
+	status = L1D.CheckCache(address);
+	time = Clean();
+	if (status == 1)//it's there!
 	{
-		//We have a write hit. Update the cache, mark bit as dirty.
-		L1D.hit_count = L1D.hit_count + 1;
+		L1D.hit_count++;
 		L1D.UpdateCache(address, 1);
-		return L1D.hit_time;
+		return L1D.hit_time + time;
 	}
 	else
 	{
-		//It's not there!
-		L1D.miss_count = L1D.miss_count + 1;
-		//Need to check L2 and bring it in from there. Then overwrite it. For some reason.
+		L1D.miss_count++;
 		status = L2.CheckCache(address);
-		if (status == 1)
+		time += Clean();
+		if (status == 1)//found the L2 entry
 		{
-			//It's in L2!
-			L2.hit_count = L2.hit_count + 1;
-			//Update the value in L1D, return the time it took
-			int transfer_time = L2.hit_time * (L1D.block_size / L2_bus_width);
+			L2.hit_count++;
+			L1D.transfers++;
 			L1D.UpdateCache(address, 1);
-			return L1D.miss_time + transfer_time;
-
+			int transfer_time = L2.hit_time * (L1D.block_size / L2_bus_width);
+                        return L1D.miss_time + transfer_time + L1D.hit_time + L2.hit_time + time;
 		}
 		else
 		{
-			//It's not in L2!
-			L2.miss_count = L2.miss_count + 1;
-			//Read in from main memory
-			L2.UpdateCache(address, 1);
-			//Transfer to L1D
-			L1D.UpdateCache(address, 1);
+			L2.miss_count++;
+			L2.transfers = L2.transfers + 1;
+                        L2.UpdateCache(address, 0);
+                        //"read in" from L2 to L1
+                        L1D.transfers = L1D.transfers + 1;
+                        L1D.UpdateCache(address, 1);
+                        //Return the time it took
+                        int transfer_time = L2.hit_time * (L1D.block_size / L2_bus_width);
+                        int mem_time = mem_sendaddr + mem_ready + (mem_chunktime * (L2.block_size / mem_chunksize));
+                        return L1D.miss_time + L1D.hit_time + L2.hit_time + L2.miss_time + mem_time + transfer_time + time;
 
-			int transfer_time = L2.hit_time * (L1D.block_size / L2_bus_width);
-			int mem_time = mem_sendaddr + mem_ready + (mem_chunktime * (L2.block_size / mem_chunksize));
-			return L1I.miss_time + L2.miss_time + mem_time + transfer_time;
 		}
 	}
-
-	
 }
+
 
 int CacheSystem::Clean()
 {
@@ -223,73 +271,43 @@ int CacheSystem::Clean()
 
 	//Since transferring stuff takes time, this will return the amount of time
 	//taken to move everything.
-	
 	int time = 0;
 	//Since the L2 stuff doesn't actually go anywhere, we just need to run this on L1I and L1D
 	//We still need to check if something needs to be transferred, though.
 	//L2
+	time = 0;
+	//L1
+	static int pause = 0;
+	if (L1D.write_item != -1)
+	{
+		if(!pause) printf("Time of first kickout %d and address %llx\r\n",Rcycles + Wcycles + Icycles, L1D.write_item);
+		pause = 1;
+		if(L2.CheckCache(L1D.write_item))
+		{
+			L2.hit_count++;
+			int cache_time = L2.hit_time * ((L1D.block_size) / L2_bus_width);
+			time = cache_time + L2.hit_time;
+		}
+		else
+		{
+			L2.miss_count++;
+			int mem_time =  mem_sendaddr + mem_ready + (mem_chunktime * (L2.block_size) / mem_chunksize);
+			time = mem_time + L2.miss_time + L2.hit_time;
+		}
+		L2.UpdateCache(L1D.write_item, 1);
+		L1D.write_item = -1;
+		//L1D.transfers = L1D.transfers + 1;
+	}
 	if (L2.write_item != -1)
 	{
 		L2.write_item = -1;
+		//L2.transfers = L2.transfers + 1;
 
 		int mem_time = mem_sendaddr + mem_ready + (mem_chunktime * (L2.block_size) / mem_chunksize);
 		time = time + mem_time;
 	}
 
-	//L1
-	if (L1I.write_item != -1)
-	{
-		/*
-		int numbytes = L1I.block_size;
-		L2.Write(L1I.write_item, numbytes, L1I.write_dirty);
-		L1I.write_item = -1;
-		L1I.transfers = L1I.transfers + 1;
-		int cache_time = L2.hit_time * ((L2.block_size) / L2_bus_width);
-		time = time + cache_time;
-		*/
-		unsigned long long address = L1I.write_item;
-		int isDirty = L1I.write_dirty;
-		L2.UpdateCache(address, isDirty);
-		time = time + (L2_transfer_time * (L1I.block_size / L2_bus_width));
-		//Check L2 again
-		if (L2.write_item != -1)
-		{
-			L2.write_item = -1;
-			int mem_time = mem_sendaddr + mem_ready + (mem_chunktime * (L2.block_size) / mem_chunksize);
-			time = time + mem_time;
-		}
-		L1I.write_item = -1;
-		L1I.write_dirty = 0;
-
-	}
-	if (L1D.write_item != -1)
-	{
-		/*
-		int numbytes = L1D.block_size;
-		L2.Write(L1D.write_item, numbytes, L1D.write_dirty);
-		L1D.write_item = -1;
-		L1D.transfers = L1D.transfers + 1;
-
-		int cache_time = L2.hit_time * ((L2.block_size) / L2_bus_width);
-		time = time + cache_time;
-
-		*/
-		unsigned long long address = L1D.write_item;
-		int isDirty = L1D.write_dirty;
-		L2.UpdateCache(address, isDirty);
-		time = time + (L2_transfer_time * (L1D.block_size / L2_bus_width));
-		//Check L2 again
-		if (L2.write_item != -1)
-		{
-			L2.write_item = -1;
-			int mem_time = mem_sendaddr + mem_ready + (mem_chunktime * (L2.block_size) / mem_chunksize);
-			time = time + mem_time;
-		}
-		L1D.write_item = -1;
-		L1D.write_dirty = 0;
-	}
-
-	return 0;
+	return time;
 }
 
 int CacheSystem::flush()
@@ -301,17 +319,43 @@ int CacheSystem::flush()
 	//We'll run this on L2 first to "move" the bits to "main memory". With L2 freshly invalidated, we can move
 	//up the stuff from the L1 caches easy.
 
-	int L2_mem_count = L2.Evict(L2, 0); //(we're not going to actually write stuff so it's OK to use L2 as the first arg).
-	int L1D_L2_count = L1D.Evict(L2, 1);
-	int L1I_L2_count = L1I.Evict(L2, 1);
+//	int L2_mem_count = L2.Evict(L2, 0); //(we're not going to actually write stuff so it's OK to use L2 as the first arg).
+//	int L1D_L2_count = L1D.Evict(L2, 1);
+//	int L1I_L2_count = L1I.Evict(L2, 1);
+	unsigned long long address = 1;
+	int time = 0;
 
+	static int pause = 0;
 
-	int L2_mem_time = mem_sendaddr + mem_ready + (mem_chunktime * (L2_mem_count*L2.block_size) / mem_chunksize);
-	int L1D_L2_time = L2.hit_time * (L1D_L2_count * (L1D.block_size)) / L2_bus_width;
-	int L1I_L2_time = L2.hit_time * (L1I_L2_count * (L1I.block_size)) / L2_bus_width;
-
-	int time = L2_mem_count + L1D_L2_time + L1I_L2_time;
-
+	while (address > 0)
+	{
+		address = L1D.Evict(L2, 1);
+		if (L2.CheckCache(address))
+		{
+			time += Clean();
+			L2.hit_count++;
+			L1D.kickouts_flush++;
+			time += L2.hit_time * (L1D.block_size/L2_bus_width) + L2.hit_time;
+		}
+		else
+		{
+			time += Clean();
+			L2.miss_count++;
+			time += mem_sendaddr + mem_ready + mem_chunktime * (L2.block_size/ mem_chunksize) + L2.miss_time + L2.hit_time;
+			
+		}
+		
+		L2.UpdateCache(address, 1);
+	if(!pause) printf("Flush address %llx\r\n", address);
+	}
+pause = 1;
+	int L2_mem_time = mem_sendaddr + mem_ready + (mem_chunktime * (L2.block_size) / mem_chunksize);
+	
+	while (L2.Evict(L2, 0))
+	{
+		time += L2_mem_time;
+		L2.kickouts_flush++; 	
+	}
 
 	flush_count = flush_count + 1;
 	return time; //I don't think we need to return anything here, but I'll leave this in case I change my mind.
@@ -359,18 +403,17 @@ int CacheSystem::GetMMCost()
 	int bandwidth_mult = 0;
 	if (mem_chunksize > 16)
 	{ 
-		bandwidth_mult = int(log(mem_chunksize) / log(2)) - 3;
+		bandwidth_mult = log((double)mem_chunksize/16) / log(2) * 100;
 	}
-	int bandwidth_cost = 25 + 100 * bandwidth_mult;
+	int bandwidth_cost = 25 + bandwidth_mult;
 
 	//Latency cost
 	int latency_mult = 0;
 	if (mem_ready < 50)
 	{
-		latency_mult = 50 / mem_ready;
-		latency_mult = int(log(latency_mult) / log(2)) + 1;
+		latency_mult = (log((double)mem_ready/50) / log(2)) * -200;
 	}
-	int latency_cost = 50 + latency_mult * 200;
+	int latency_cost = 50 + latency_mult;
 
 	int total = latency_cost + bandwidth_cost;
 	return total;
@@ -383,16 +426,18 @@ int CacheSystem::GetMMCost()
 
 BasicCache::BasicCache() //default constructor
 {
-	BasicCache(8192, 1, 32, 1 , 1);
+	BasicCache(8192, 1, 32, 1 , 1, 4);
 }
 
-BasicCache::BasicCache(int size_val, int assoc_val, int block_size_val, int hit_time_val, int miss_time_val) //Advanced constructor
+BasicCache::BasicCache(int size_val, int assoc_val, int block_size_val, int hit_time_val, int miss_time_val, int bus_width_val) //Advanced constructor
 {
 	cache_size = size_val;
 	assoc = assoc_val;
 	block_size = block_size_val;
 	hit_time = hit_time_val;
 	miss_time = miss_time_val;
+	bus_width = bus_width_val;
+
 
 	block_count = cache_size / (block_size); //Bytes / (bytes/block) = number of blocks we need
 
@@ -412,13 +457,14 @@ BasicCache::BasicCache(int size_val, int assoc_val, int block_size_val, int hit_
 	}
 
 	//Update the number of bits we need from the address for tag, index, offset.
-	offset_bits = GetOffsetBits();
-	index_bits = GetIndexBits();
-	tag_bits = GetTagBits();
+	offset_bits = SetOffsetBits();
+	index_bits = SetIndexBits();
+	tag_bits = SetTagBits();
 
+	index_mask = pow(2, index_bits) - 1;//index_bits are a power of 2, so subtracting 1 gives mask
 }
 
-int BasicCache::GetTagBits()
+int BasicCache::SetTagBits()
 {
 	//Computes the number of index bits in the address
 	//Number of tag bits = 48 - index bits - offset bits
@@ -428,7 +474,7 @@ int BasicCache::GetTagBits()
 	int n = 48 - index_bits - offset_bits;
 	return n;
 }
-int BasicCache::GetIndexBits()
+int BasicCache::SetIndexBits()
 {
 	//Computes number of index bits in the address
 	//2^n = number of blocks, where n is the number of bits we need so
@@ -445,7 +491,7 @@ int BasicCache::GetIndexBits()
 
 	return n;
 }
-int BasicCache::GetOffsetBits()
+int BasicCache::SetOffsetBits()
 {
 	//Computes the number of byte offest bits in the address
 	//2^n = number of bytes in a block, where n is the number of bits we need so
@@ -475,18 +521,15 @@ int BasicCache::Read(unsigned long long address, int numbytes)
 				//hooray! it's here!
 				//Update the LRU
 				UpdateLRU(index);
-				hit_count = hit_count + 1;
 				//update the hit count
-				return hit_time;
+				hit_count = hit_count + 1;
+				return hit_time * numbytes;
 			}
 		}
 
 		//If we're here, then what we're looking for... isn't here ;_;
 		//Update miss count
 		miss_count = miss_count + 1;
-
-		//Need to "read in" "value" from next level of memory.
-		//Find a location, update the tag array.
 		return -1;
 	}
 	//Direct-mapped
@@ -500,12 +543,13 @@ int BasicCache::Read(unsigned long long address, int numbytes)
 			UpdateLRU(index);
 			//Update hit count
 			hit_count = hit_count + 1;
-			return hit_time;
+			if (numbytes < bus_width) numbytes = bus_width;
+			return hit_time * numbytes / bus_width;
 		}
 		else
 		{
 			//Oh. It's not here. ;_;
-			//"fetch" from next level
+			miss_count = miss_count + 1;
 			return -1;
 		}
 	}
@@ -530,12 +574,12 @@ int BasicCache::Read(unsigned long long address, int numbytes)
 			else
 			{
 				//Not here. ;_;
+				miss_count = miss_count + 1;
 				index = index + block_count / assoc;
 			}
 		}
 
 		//We're not in the for-loop anymore, so I'm guessing that it's not here.
-		//"fetch" from main memory
 		return -1;
 	}
 
@@ -550,9 +594,9 @@ int BasicCache::Write(unsigned long long address, int numbytes, int isDirty)
 
 	unsigned long tag = (address >> (index_bits + offset_bits)); //Shift right to get the tag bits
 	//unsigned int index = (address << tag_bits) >> (tag_bits + offset_bits); //Shift left to get rid of the tag, shift right to get rid of offest bits
-	unsigned int index = (address >> offset_bits);
-	index = index << (32 - index_bits);
-	index = index >> (32 - index_bits);
+	unsigned int index = (address >> offset_bits) & index_mask;
+//	index = index << (32 - index_bits);
+//	index = index >> (32 - index_bits);
 	
 
 	//Fully Associative
@@ -569,12 +613,10 @@ int BasicCache::Write(unsigned long long address, int numbytes, int isDirty)
 			{
 				UpdateLRU(i);
 				dirty_array[i] = 1;
-				hit_count = hit_count + 1;
 				return hit_time * numbytes;
 			}
 		}
 
-		miss_count = miss_count + 1;
 		//Okay, so our thing is not in the cache. Is there an open space?
 		for (int i = 0; i < block_count; i++)
 		{
@@ -625,18 +667,18 @@ int BasicCache::Write(unsigned long long address, int numbytes, int isDirty)
 		{
 			dirty_array[index] = 1;
 			UpdateLRU(index);
-			hit_count = hit_count + 1;
-			return hit_time * numbytes;
+			if (numbytes < bus_width) numbytes = bus_width;
+			return hit_time * numbytes / bus_width;
 		}
 		//It's not there. Is the place we want to write to valid?
-		miss_count = miss_count + 1;
 		if (valid_array[index] == 0)
 		{
 			//It's not valid, we can replace it no problem.
 			tag_array[index] = tag;
 			valid_array[index] = 1;
 			UpdateLRU(index);
-			return hit_time * numbytes;
+			if (numbytes < bus_width) numbytes = bus_width;
+			return hit_time * numbytes / bus_width;
 		}
 		else
 		{
@@ -659,7 +701,8 @@ int BasicCache::Write(unsigned long long address, int numbytes, int isDirty)
 			tag_array[index] = tag;
 			dirty_array[index] = 0;
 			UpdateLRU(index);
-			return hit_time * numbytes;
+			if (numbytes < bus_width) numbytes = bus_width;
+			return hit_time * numbytes / bus_width;
 		}
 	}
 
@@ -680,7 +723,6 @@ int BasicCache::Write(unsigned long long address, int numbytes, int isDirty)
 				//Update LRU, set dirty bit.
 				UpdateLRU(index_local);
 				dirty_array[index_local] = 1;
-				hit_count = hit_count + 1;
 				return hit_time * numbytes;
 			}
 			else
@@ -691,7 +733,6 @@ int BasicCache::Write(unsigned long long address, int numbytes, int isDirty)
 		}
 
 		//It's not in the cache. We need to check the available spaces for an opening.
-		miss_count = miss_count + 1;
 		index_local = index;
 		for (int i = 0; i < assoc; i++)
 		{
@@ -749,7 +790,6 @@ int BasicCache::Write(unsigned long long address, int numbytes, int isDirty)
 	}
 
 }
-
 int BasicCache::CheckCache(unsigned long long address)
 {
 	unsigned long tag = (address >> (index_bits + offset_bits)); //Shift right to get the tag bits
@@ -784,11 +824,23 @@ int BasicCache::CheckCache(unsigned long long address)
 			//It's here! Rejoice!
 			return 1;
 		}
-		else
+		else if(valid_array[index] == 1)
 		{
 			//Oh. It's not here. ;_;
-			return 0;
+			valid_array[index] = 0;
+			
+			kickouts = kickouts + 1;
+			//Update the kickouts appropriately.
+			if (dirty_array[index] == 1)
+			{
+				kickouts_d = kickouts_d + 1;
+				long long old_tag = tag_array[index];
+				old_tag = ((old_tag << index_bits) + index) << offset_bits; //now it's an old address!
+				write_item = old_tag;
+				write_dirty = dirty_array[index];
+			}
 		}
+		return 0;
 	}
 
 	//2 or 4 or 8 or whatever-way SA
@@ -825,8 +877,6 @@ void BasicCache::UpdateCache(unsigned long long address, int isWrite)
 	unsigned int index = (address >> offset_bits);
 	index = index << (32 - index_bits);
 	index = index >> (32 - index_bits);
-
-
 	//Fully Associative
 	if (assoc == 0)
 	{
@@ -876,15 +926,17 @@ void BasicCache::UpdateCache(unsigned long long address, int isWrite)
 	if (assoc == 1)
 	{
 
-		if (valid_array[index] == 0)
-		{
+	//	if ((valid_array[index] == 0) || (tag_array[index] == tag))
+	//	{
 			//It's not valid, we can replace it no problem.
+			//or updating an existing value
 			tag_array[index] = tag;
 			valid_array[index] = 1;
+			write_dirty = isWrite;
 			dirty_array[index] = isWrite;
 			UpdateLRU(index);
 			return;
-		}
+	/*	}
 		else
 		{
 			//It's already valid. Oh dear. We need to get our hands dirty.
@@ -892,22 +944,21 @@ void BasicCache::UpdateCache(unsigned long long address, int isWrite)
 			if (dirty_array[index] == 1)
 			{
 				kickouts_d = kickouts_d + 1;
+				long long old_tag = tag_array[index];
+				old_tag = ((old_tag << index_bits) + index) << offset_bits; //now it's an old address!
+				write_item = old_tag;
+				write_dirty = dirty_array[index];
 			}
 			else
 			{
 				kickouts = kickouts + 1;
 			}
-
-			long long old_tag = tag_array[index];
-			old_tag = ((old_tag << index_bits) + index) << offset_bits; //now it's an old address!
-			write_item = old_tag;
-			write_dirty = dirty_array[index];
-
+			
 			tag_array[index] = tag;
 			dirty_array[index] = isWrite;
 			UpdateLRU(index);
 			return;
-		}
+		}*/
 	}
 
 	//X-way set-associative
@@ -973,36 +1024,85 @@ void BasicCache::UpdateCache(unsigned long long address, int isWrite)
 
 	}
 }
+/*
+int BasicCache::KickCheck(unsigned long long address, BasicCache& top)
+{
+	unsigned long tag = (address >> (index_bits + offset_bits)); //Shift right to get the tag bits
+	//unsigned int index = (address << tag_bits) >> (tag_bits + offset_bits); //Shift left to get rid of the tag, shift right to get rid of offest bits
+	unsigned int index = (address >> offset_bits);
+	index = index << (32 - index_bits);
+	index = index >> (32 - index_bits);
 
-int BasicCache::Evict(BasicCache& input_cache, int real_evict)
+	int time = 0;
+
+	if (valid_array[index] == 1)//a kick is needed
+	{
+		if (dirty_array[index] == 1)
+		{
+			kickouts_d++;
+			if (top != NULL)
+			{
+			unsigned long long old_address = ((tag_array[index] << index_bits) + index) << offset_bits;
+			time = top.KickCheck(old_address, NULL);	
+			}
+			else
+			{
+			}
+		}
+		else
+		{
+			kickouts++;
+		}
+
+		return 1;
+	}
+
+	return 0;
+}
+*/
+unsigned long long BasicCache::Evict(BasicCache& input_cache, int real_evict)
 {
 	//Invalidates all items in the cache.
 	//if one of the items is dirty, it's written to the next level.
 	//If real_evict is 1, then we're going to actually write. If not, we'll just pretend and say we did.
 	//Returns number of evicts.
-
+/*
 	int evict_count = 0;
 	for (int i = 0; i < block_count; i++)
 	{
-		valid_array[i] = 0;
-		if (dirty_array[i] == 1)
+		if ((valid_array[i] == 1) && (dirty_array[i] == 1))
 		{
-			evict_count = 1;
+			evict_count += 1;
 			//Write it to the next level
 			if (real_evict == 1)
 			{
 				//Reconstruct the address
 				long long tag = tag_array[i];
 				tag = (tag << (index_bits + offset_bits)) + (i << offset_bits);
-				int numbytes = (block_size); //number of bytes in a block
-
-				input_cache.Write(tag, numbytes, 1);
+				input_cache.CheckCache(tag);
+				
+				input_cache.UpdateCache(tag, 1);
 				kickouts_flush = kickouts_flush + 1;
 			}
 			dirty_array[i] = 0;
 		}
+		valid_array[i] = 0;
+	}*/
+	int i;
+	for (i = 0; i < block_count; i++)//find first valid block
+	{
+		if(valid_array[i] == 1)
+		{
+			valid_array[i] = 0;
+			break;
+		}
 	}
-	return evict_count; //vOv
+	if (i == block_count)
+	{
+		return 0;
+	}
+
+	return ((tag_array[i] << index_bits) + i) << offset_bits; //return address of evicted block
 }
 
 void BasicCache::UpdateLRU(int index)
@@ -1049,6 +1149,26 @@ int BasicCache::GetAgeLRU(int index)
 	return age;
 }
 
+unsigned long BasicCache::getTag(int index)
+{
+	return tag_array[index];
+}
+
+int BasicCache::getValid(int index)
+{
+	return valid_array[index];
+}
+
+int BasicCache::getDirty(int index)
+{
+	return dirty_array[index];
+}
+
+int BasicCache::getIndexBits()
+{
+	return index_bits;
+}
+
 int BasicCache::getCacheSize()
 {
 	return cache_size;
@@ -1059,14 +1179,19 @@ int BasicCache::getAssoc()
 	return assoc;
 }
 
+int BasicCache::getBlockSize()
+{
+	return block_size;
+}
+
 BasicCache::~BasicCache()
+
 {
 	//delete tag_array;
 	//delete valid_array;
 	//delete dirty_array;
 	//delete LRU_array;
 }
-
 
 ///////////////////////
 //Cache system data functions
@@ -1097,6 +1222,36 @@ unsigned long CacheSystem::L1D_Kickouts_Flush()
 unsigned long CacheSystem::L1D_Transfers()
 {
 	return L1D.transfers;
+}
+
+int CacheSystem::getRrefs()
+{
+	return Rrefs;
+}
+
+int CacheSystem::getWrefs()
+{
+	return Wrefs;
+}
+
+int CacheSystem::getIrefs()
+{
+	return Irefs;
+}
+
+int CacheSystem::getRcycles()
+{
+	return Rcycles;
+}
+
+int CacheSystem::getWcycles()
+{
+	return Wcycles;
+}
+
+int CacheSystem::getIcycles()
+{
+	return Icycles;
 }
 
 ////////////////

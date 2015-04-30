@@ -25,27 +25,36 @@ public:
 
 	int block_size = 32;
 
+	int index_mask;
+
 	////////functions/////////
 	BasicCache(); //Basic/default constructor
-	BasicCache::BasicCache(int size_kb, int assoc_val, int block_size_val, int hit_time_val, int miss_time_val); //Advanced constructor
+	BasicCache(int size_kb, int assoc_val, int block_size_val, int hit_time_val, int miss_time_val, int bus_width_val); //Advanced constructor
 	~BasicCache(); //destructor
 
 	int Read(unsigned long long address, int numbytes); //Read the data according to the instruction, return the time it took.
 	int Write(unsigned long long address, int numbytes, int isDirty); //Write the data/instruction, same thing
-	int Evict(BasicCache& input_cache, int real_evict);
+	int CheckCache(unsigned long long address);
+	void UpdateCache(unsigned long long address, int isWrite);
+	int KickCheck(unsigned long long address, BasicCache& out);
+	unsigned long long Evict(BasicCache& input_cache, int real_evict);
 
 	int getCacheSize();
 	int getAssoc();
+	int getBlockSize();
 
-	int CheckCache(unsigned long long address);
-	void UpdateCache(unsigned long long address, int isWrite);
+	unsigned long getTag(int index);
+	int getValid(int index);
+	int getDirty(int index);
+
+	int getIndexBits();
 private:
 
 	////////variables/////////
 	int cache_size = 8192;
 	int assoc = 1;	//associativity
 	int block_count;
-
+	int bus_width;
 
 	//Tag and status bits
 	unsigned long * tag_array; //32 bits!
@@ -57,7 +66,6 @@ private:
 	int index_bits;
 	int offset_bits;
 
-
 	long long * LRU_array;
 
 
@@ -65,12 +73,10 @@ private:
 	void UpdateLRU(int index);
 	int GetAgeLRU(int index);
 
-
-
 	//Get the number of bits for tag, index, offset.
-	int GetTagBits();
-	int GetIndexBits();
-	int GetOffsetBits();
+	int SetTagBits();
+	int SetIndexBits();
+	int SetOffsetBits();
 
 
 };
@@ -83,13 +89,25 @@ class CacheSystem
 
 		////////functions/////////
 		CacheSystem(); //default constructor
-		CacheSystem(int L1_size_kb, int L1_assoc_val, int L2_size_kb, int L2_assoc_val);
+		CacheSystem(int L1_size, int L1_assoc_val, int L1_block_size_val, int L1_hit_time_val, int L1_miss_time_val,
+                            int L2_size, int L2_assoc_val, int L2_block_size_val, int L2_hit_time_val, int L2_miss_time_val,
+			    int L2_transfer_time_val, int L2_bus_width_val);
+		
 		//~CacheSystem(); //destructor?
 
 		int Execute(char inst, unsigned long long address, int numbytes);
 		int GetL1Cost();
 		int GetL2Cost();
 		int GetMMCost();
+
+		int getRrefs();
+		int getWrefs();
+		int getIrefs();
+	
+		int getRcycles();
+		int getWcycles();
+		int getIcycles();
+
 
 		unsigned long L1D_Hits();
 		unsigned long L1D_Misses();
@@ -112,7 +130,11 @@ class CacheSystem
 		unsigned long L2_Kickouts_Flush();
 		unsigned long L2_Transfers();
 
-	
+
+		BasicCache L1D;
+		BasicCache L1I;
+		BasicCache L2;
+
 	private:
 		////////variables//////////
 		
@@ -125,11 +147,16 @@ class CacheSystem
 		int mem_chunktime = 15; //Time to send/recieve a single bus-width of data
 		int mem_chunksize = 8;	//Width of the bus interface to memory, in bytes
 
-		BasicCache L1D;
-		BasicCache L1I;
-		BasicCache L2;
-
 		int instruction_count = 0;
+
+		int Rrefs = 0;
+		int Wrefs = 0;
+		int Irefs = 0;
+		
+
+		int Rcycles = 0;
+		int Wcycles = 0;
+		int Icycles = 0;
 
 		////////functions/////////
 		int Read(unsigned long long address, int numbytes);
