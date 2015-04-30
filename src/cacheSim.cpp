@@ -141,9 +141,9 @@ int main (int argc, char ** argv)
 
 	/* Summary */
 
-	fprintf(log,"Execution Time = %d;\tTotal refs:%d\r\n", execTime, Trefs);
-	fprintf(log,"Flush Time = %d\r\n", cache.flush_time);
-	fprintf(log,"Inst refs = %d;\tData refs = %d\r\n\r\n", Irefs, Wrefs);
+	fprintf(log,"Execution Time = %llu;\tTotal refs:%llu\r\n", execTime, Trefs);
+	fprintf(log,"Flush Time = %llu\r\n", cache.flush_time);
+	fprintf(log,"Inst refs = %llu;\tData refs = %llu\r\n\r\n", Irefs, Wrefs);
 	
 	/* # of refs */
 
@@ -151,19 +151,19 @@ int main (int argc, char ** argv)
 	else percent = 0;
 
 	fprintf(log,"Number of reference types: [Percentage]\r\n");
-	fprintf(log,"Reads = \t%d\t[%2.1f%]\r\n", Rrefs, percent);
+	fprintf(log,"Reads = \t%luu\t[%2.1f%]\r\n", Rrefs, percent);
 	
 	if(Wrefs > 0) percent = (float)Wrefs / (float)Trefs * 100;
 	else percent = 0;
 
-	fprintf(log,"Writes = \t%d\t[%2.1f%]\r\n", Wrefs, percent);
+	fprintf(log,"Writes = \t%llu\t[%2.1f%]\r\n", Wrefs, percent);
 
 	if(Irefs > 0) percent = (float)Irefs / (float)Trefs * 100;
 	else percent = 0;
 	
-	fprintf(log,"Inst. = \t%d\t[%2.1f%]\r\n", Irefs, percent);
+	fprintf(log,"Inst. = \t%llu\t[%2.1f%]\r\n", Irefs, percent);
 
-	fprintf(log,"Total = \t%d\r\n\r\n", Trefs);
+	fprintf(log,"Total = \t%llu\r\n\r\n", Trefs);
 
 	/* Total cycles*/
 
@@ -172,19 +172,19 @@ int main (int argc, char ** argv)
 	if(Rcycle > 0) percent = (float)Rcycle / (float)execTime * 100;
 	else percent = 0;
 
-	fprintf(log,"Reads = \t%d\t[%2.1f%]\r\n", Rcycle, percent);
+	fprintf(log,"Reads = \t%llu\t[%2.1f%]\r\n", Rcycle, percent);
 	
 	if(Wcycle > 0) percent = (float)Wcycle / (float)execTime * 100;
 	else percent = 0;
 	
-	fprintf(log,"Writes = \t%d\t[%2.1f%]\r\n", Wcycle, percent);
+	fprintf(log,"Writes = \t%llu\t[%2.1f%]\r\n", Wcycle, percent);
 
 	if(Icycle > 0) percent = (float)Icycle / (float)execTime * 100;
 	else percent = 0;
 
-	fprintf(log,"Inst. = \t%d\t[%2.1f%]\r\n", Icycle, percent);
+	fprintf(log,"Inst. = \t%llu\t[%2.1f%]\r\n", Icycle, percent);
 
-	fprintf(log,"Total = \t%d\r\n\r\n", execTime);
+	fprintf(log,"Total = \t%llu\r\n\r\n", execTime);
 
 	float average;
 
@@ -213,51 +213,51 @@ int main (int argc, char ** argv)
 
 	average = (float)Ideal/(float)Irefs;
 	
-	fprintf(log,"\tIdeal: Exec. Time = %d; CPI = %2.1f\r\n", Ideal, average); 
+	fprintf(log,"\tIdeal: Exec. Time = %llu; CPI = %2.1f\r\n", Ideal, average); 
 
 	Ideal = Irefs*2 + ((cache.L1I_Hits() + cache.L1I_Misses()) - Irefs) + cache.L1D_Hits()
 		+ cache.L1D_Misses();//need to figure out the mis-aligned case
 
 	average = (float)Ideal/(float)Irefs;
 
-	fprintf(log,"\tIdeal Mis-aligned: Exec. Time = %d; CPI = %2.1f\r\n\r\n", Ideal, average);
+	fprintf(log,"\tIdeal Mis-aligned: Exec. Time = %llu; CPI = %2.1f\r\n\r\n", Ideal, average);
 
 	/*L1I stats*/
 
 	fprintf(log, "Memory Level: L1I\r\n");
-	fprintf(log, "\tHit Count = %lu\tMiss Count = %lu\r\n", cache.L1I_Hits(), cache.L1I_Misses());
-	fprintf(log, "\tTotal Requests = %d\r\n",cache.L1I_Hits() + cache.L1I_Misses());
+	fprintf(log, "\tHit Count = %llu\tMiss Count = %llu\r\n", cache.L1I_Hits(), cache.L1I_Misses());
+	fprintf(log, "\tTotal Requests = %llu\r\n",cache.L1I_Hits() + cache.L1I_Misses());
 	
 	percent = (float)cache.L1I_Hits()/(float)(cache.L1I_Hits() + cache.L1I_Misses())*100;
 	fprintf(log, "\tHit Rate = %2.1f\t",percent);
 	percent = (float)cache.L1I_Misses()/(float)(cache.L1I_Hits() + cache.L1I_Misses())*100;
 	fprintf(log, "Miss Rate = %2.1f\r\n", percent);
 
-	fprintf(log, "\tKickouts = %lu;\tDirty Kickouts = %lu;\tTransfers = %lu\r\n",
+	fprintf(log, "\tKickouts = %llu;\tDirty Kickouts = %llu;\tTransfers = %llu\r\n",
 		cache.L1I_Kickouts(), cache.L1I_Kickouts_D(), cache.L1I_Transfers());
-	fprintf(log, "\tFlush Kickouts = %lu\r\n\r\n", cache.L1I_Kickouts_Flush());
+	fprintf(log, "\tFlush Kickouts = %llu\r\n\r\n", cache.L1I_Kickouts_Flush());
 
 	/* L1D stats*/
 	
 	fprintf(log, "Memory Level: L1D\r\n");
-	fprintf(log, "\tHit Count = %lu\tMiss Count = %lu\r\n", cache.L1D_Hits(), cache.L1D_Misses());
-	fprintf(log, "\tTotal Requests = %d\r\n",cache.L1D_Hits() + cache.L1D_Misses());
+	fprintf(log, "\tHit Count = %llu\tMiss Count = %llu\r\n", cache.L1D_Hits(), cache.L1D_Misses());
+	fprintf(log, "\tTotal Requests = %llu\r\n",cache.L1D_Hits() + cache.L1D_Misses());
 	
 	percent = (float)cache.L1D_Hits()/(float)(cache.L1D_Hits() + cache.L1D_Misses())*100;
 	fprintf(log, "\tHit Rate = %2.1f\t",percent);
 	percent = (float)cache.L1D_Misses()/(float)(cache.L1D_Hits() + cache.L1D_Misses())*100;
 	fprintf(log, "Miss Rate = %2.1f\r\n", percent);
 
-	fprintf(log, "\tKickouts = %lu;\tDirty Kickouts = %lu;\tTransfers = %lu\r\n",
+	fprintf(log, "\tKickouts = %llu;\tDirty Kickouts = %llu;\tTransfers = %llu\r\n",
 		cache.L1D_Kickouts(), cache.L1D_Kickouts_D(), cache.L1D_Transfers());
-	fprintf(log, "\tFlush Kickouts = %lu\r\n\r\n", cache.L1D_Kickouts_Flush());
+	fprintf(log, "\tFlush Kickouts = %llu\r\n\r\n", cache.L1D_Kickouts_Flush());
 
 	/* L2 stats*/
 
 	
 	fprintf(log, "Memory Level: L2\r\n");
-	fprintf(log, "\tHit Count = %lu\tMiss Count = %lu\r\n", cache.L2_Hits(), cache.L2_Misses());
-	fprintf(log, "\tTotal Requests = %d\r\n",cache.L2_Hits() + cache.L2_Misses());
+	fprintf(log, "\tHit Count = %llu\tMiss Count = %llu\r\n", cache.L2_Hits(), cache.L2_Misses());
+	fprintf(log, "\tTotal Requests = %llu\r\n",cache.L2_Hits() + cache.L2_Misses());
 	
 	if(cache.L2_Hits() > 0) percent = (float)cache.L2_Hits()/(float)(cache.L2_Hits() + cache.L2_Misses())*100;
 	else percent = 0;
@@ -267,9 +267,9 @@ int main (int argc, char ** argv)
 	else percent = 0;
 	fprintf(log, "Miss Rate = %2.1f\r\n", percent);
 
-	fprintf(log, "\tKickouts = %lu;\tDirty Kickouts = %lu;\tTransfers = %lu\r\n",
+	fprintf(log, "\tKickouts = %llu;\tDirty Kickouts = %llu;\tTransfers = %llu\r\n",
 		cache.L2_Kickouts(), cache.L2_Kickouts_D(), cache.L2_Transfers());
-	fprintf(log, "\tFlush Kickouts = %lu\r\n\r\n", cache.L2_Kickouts_Flush());
+	fprintf(log, "\tFlush Kickouts = %llu\r\n\r\n", cache.L2_Kickouts_Flush());
 
 	/* Costs */
 
@@ -277,7 +277,7 @@ int main (int argc, char ** argv)
 		cache.GetL1Cost(), cache.GetL1Cost() * 2);
 	fprintf(log, "L2 Cache Cost = $%d;\tMemory Cost = $%d\tTotal cost = $%d\r\n",
 		cache.GetL2Cost(), cache.GetMMCost(), cache.GetL2Cost() + cache.GetMMCost() + (cache.GetL1Cost() * 2));
-	fprintf(log, "Flushes = %d :\tInvalidates = %d\r\n\r\n", cache.flush_count, cache.L1I.invalidates + cache.L1D.invalidates + cache.L2.invalidates);//TODO: fill out
+	fprintf(log, "Flushes = %llu :\tInvalidates = %llu\r\n\r\n", cache.flush_count, cache.L1I.invalidates + cache.L1D.invalidates + cache.L2.invalidates);//TODO: fill out
 
 	fprintf(log,"------------------------------------------------------------\r\n\r\n");
 

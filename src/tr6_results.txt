@@ -1,6 +1,6 @@
 ------------------------------------------------------------
 	tr6.default	Simulation Results
-	Start time: 2015-4-30 2:27:33
+	Start time: 2015-4-30 4:26:6
 ------------------------------------------------------------
 Memory System:
 D-cache size = 8192 : ways = 1 : block size = 32
@@ -12,7 +12,7 @@ Flush Time = 0
 Inst refs = 776;	Data refs = 62
 
 Number of reference types: [Percentage]
-Reads = 	162	[16.2%]
+Reads = 	162u	[16.2%]
 Writes = 	62	[6.2%]
 Inst. = 	776	[77.6%]
 Total = 	1000
@@ -320,5 +320,5 @@ Index : 1e8	| V: 1	D:0	Tag:	ff039c43	|
 		
 Index : 1e9	| V: 1	D:0	Tag:	ff039c43	|
 
-End time: 2015-4-30 2:27:33
+End time: 2015-4-30 4:26:6
 Total run time: 0
