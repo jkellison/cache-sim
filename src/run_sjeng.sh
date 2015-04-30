@@ -1,2 +1,2 @@
-zcat ../traces/sjeng.gz | ./cacheSim sjeng.txt
+zcat ../traces/sjeng.gz | ./cacheSim sjeng.txt config
 #vim sjeng.txt

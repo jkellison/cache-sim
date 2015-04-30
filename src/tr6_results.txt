@@ -1,6 +1,6 @@
 ------------------------------------------------------------
-	default	Simulation Results
-	Start time: 2015-4-30 2:26:27
+	tr6.default	Simulation Results
+	Start time: 2015-4-30 2:27:33
 ------------------------------------------------------------
 Memory System:
 D-cache size = 8192 : ways = 1 : block size = 32
@@ -320,5 +320,5 @@ Index : 1e8	| V: 1	D:0	Tag:	ff039c43	|
 		
 Index : 1e9	| V: 1	D:0	Tag:	ff039c43	|
 
-End time: 2015-4-30 2:26:27
+End time: 2015-4-30 2:27:33
 Total run time: 0

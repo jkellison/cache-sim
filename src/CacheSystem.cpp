@@ -8,11 +8,11 @@ using namespace std;
 //Our default constructor
 CacheSystem::CacheSystem()
 {
-	CacheSystem(8192, 1, 32, 1, 1, 32768, 1, 64, 5, 7, 5, 16);
+	CacheSystem(8192, 1, 32, 1, 1, 32768, 1, 64, 5, 7, 5, 16, 8);
 }
 CacheSystem::CacheSystem(int L1_size, int L1_assoc_val, int L1_block_size_val, int L1_hit_time_val, int L1_miss_time_val,
 			 int L2_size, int L2_assoc_val, int L2_block_size_val, int L2_hit_time_val, int L2_miss_time_val,
-			 int L2_transfer_time_val, int L2_bus_width_val)
+			 int L2_transfer_time_val, int L2_bus_width_val, int mem_chunksize_val)
 {
 	//Not sure how to tackle this ATM, but we can set some values here anyway for later
 	
@@ -27,6 +27,8 @@ CacheSystem::CacheSystem(int L1_size, int L1_assoc_val, int L1_block_size_val, i
 	L1D = BasicCache(L1_size, L1_assoc_val, L1_block_size_val, L1_hit_time_val, L1_miss_time_val, 4);
 	L1I = BasicCache(L1_size, L1_assoc_val, L1_block_size_val, L1_hit_time_val, L1_miss_time_val, 4);
 	L2 = BasicCache(L2_size, L2_assoc_val, L2_block_size_val, L2_hit_time_val, L2_miss_time_val, L2_bus_width_val);
+
+	mem_chunksize = mem_chunksize_val;
 
 	L2_transfer_time = L2_transfer_time_val;
 	L2_bus_width = L2_bus_width_val;
@@ -43,7 +45,6 @@ int CacheSystem::Execute(char inst, unsigned long long address, int numbytes)
 
 	int old_bytes;
 	old_bytes = numbytes;
-
 
 	if (inst == 'R') Rrefs++;
 	if (inst == 'I') Irefs++;
@@ -76,7 +77,7 @@ int CacheSystem::Execute(char inst, unsigned long long address, int numbytes)
 			//time = time + Clean(); //late
 			if ((Irefs % 380000) == 0)
 			{
-				time = time + flush();
+				flush_time += flush();
 			}
 
 			Icycles += time;
@@ -96,8 +97,6 @@ int CacheSystem::Execute(char inst, unsigned long long address, int numbytes)
 		numbytes -= 4 - mod;
 		mod = 0;
 	}
-
-
 
 	return exec_time;
 }
@@ -272,8 +271,8 @@ int CacheSystem::Clean()
 	static int pause = 0;
 	if (L1D.write_item != -1)
 	{
-		if(!pause) printf("Time of first kickout %d and address %llx\r\n",Rcycles + Wcycles + Icycles, L1D.write_item);
-		pause = 1;
+//		if (pause < 10)printf("Time of kickout %d and address %llx\r\n",Rcycles + Wcycles + Icycles, L1D.write_item);
+//		pause++;
 		if(L2.CheckCache(L1D.write_item))
 		{
 			L2.hit_count++;
@@ -319,6 +318,8 @@ int CacheSystem::flush()
 
 	static int pause = 0;
 
+//	printf("Flush Start %d\r\n", Icycles + Rcycles+ Wcycles);
+
 	while (address > 0)
 	{
 		address = L1D.Evict(L2, 1);
@@ -338,7 +339,7 @@ int CacheSystem::flush()
 		}
 		
 		L2.UpdateCache(address, 1);
-	if(!pause) printf("Flush address %llx\r\n", address);
+//	if(!pause) printf("Flush address %llx\r\n", address);
 	}
 pause = 1;
 	int L2_mem_time = mem_sendaddr + mem_ready + (mem_chunktime * (L2.block_size) / mem_chunksize);
@@ -463,7 +464,7 @@ int BasicCache::SetTagBits()
 	//We're cheating here a little bit and assuming GetIndexBits()
 	//and GetOffsetBits() have already been computed.
 
-	int n = 48 - index_bits - offset_bits;
+	int n = 64 - index_bits - offset_bits;
 	return n;
 }
 int BasicCache::SetIndexBits()
@@ -474,11 +475,13 @@ int BasicCache::SetIndexBits()
 
 	int n = int(log(block_count) / log(2));
 
-	//For X-way set-associative, we can divide this by X since each item
+	int m = int(log(assoc)/log(2));
+
+	//For X-way set-associative, we can shift this by X since each item
 	//can go into several locations
 	if (assoc != 0)
 	{
-		n = n / assoc;
+		n = n - m;
 	}
 
 	return n;
@@ -786,9 +789,9 @@ int BasicCache::CheckCache(unsigned long long address)
 {
 	unsigned long tag = (address >> (index_bits + offset_bits)); //Shift right to get the tag bits
 	//unsigned int index = (address << tag_bits) >> (tag_bits + offset_bits); //Shift left to get rid of the tag, shift right to get rid of offest bits
-	unsigned int index = (address >> offset_bits);
-	index = index << (32 - index_bits);
-	index = index >> (32 - index_bits);
+	unsigned int index = (address >> offset_bits) & index_mask;
+//	index = index << (32 - index_bits);
+//	index = index >> (32 - index_bits);
 
 	//FA
 	if (assoc == 0)
@@ -802,7 +805,34 @@ int BasicCache::CheckCache(unsigned long long address)
 				return 1;
 			}
 		}
+		
+		//do we need to kick anything out?
+		for (int i = 0; i < block_count; i++)
+		{
+			if (valid_array[i] == 0)
+			{
+				return 0;//nope!
+			}
+		}
 
+
+		int oldest_item = LRU_array[block_count - 1];
+
+		//update kickouts accordingly
+		kickouts++;
+
+		if (dirty_array[oldest_item] == 1)
+		{
+			kickouts_d = kickouts_d + 1;
+		
+			long long old_tag = tag_array[oldest_item];
+			old_tag = ((old_tag << index_bits) + index) << offset_bits; //now it's an old address!
+			write_item = old_tag;
+			write_dirty = dirty_array[oldest_item];
+
+		}
+			valid_array[oldest_item] = 0;//now clear it out to be written by update
+			
 		//If we're here, then what we're looking for... isn't here ;_;
 		return 0;
 	}
@@ -838,11 +868,13 @@ int BasicCache::CheckCache(unsigned long long address)
 	//2 or 4 or 8 or whatever-way SA
 	if (assoc > 1)
 	{
-		index = index / assoc; //Shift the bits for a new, correct "base" index.
+		//index = index / assoc; //Shift the bits for a new, correct "base" index.
 
+		int index_local = index;
+		int index_hold = index;
 		//We need to check X locations, where X is the number of ways.
 		int i = 0;
-		for (i = 0; i < 2; i++)
+		for (i = 0; i < assoc; i++)
 		{
 			if ((tag_array[index] == tag) && (valid_array[index] == 1))
 			{
@@ -854,9 +886,53 @@ int BasicCache::CheckCache(unsigned long long address)
 				//Not here. ;_;
 				index = index + block_count / assoc;
 			}
+			}
+
+		//It's not in the cache. We need to check the available spaces for an opening.
+		for (int i = 0; i < assoc; i++)
+		{
+			if (valid_array[index_local] == 0)
+			{
+				//An empty space! Alright!
+				tag_array[index_local] = tag;
+				valid_array[index_local] = 1;
+				return 0;
+			}
+			else
+			{
+				index_local = index_local + block_count / assoc;
+			}
+		}
+		//Shit. No openings, either. We need to compare the ages of the items in
+		//the spaces taken and kick one of those jerks out.
+		int max_age = -1;
+		int max_age_index;
+		for (int i = 0; i < assoc; i++)
+		{
+			int index_local = index_hold + i*(block_count / assoc);
+			int age_local = GetAgeLRU(index_local);
+			if (age_local > max_age)
+			{
+				max_age = age_local;
+				max_age_index = index_local;
+			}
 		}
 
-		//We're not in the for-loop anymore, so I'm guessing that it's not here.
+		kickouts = kickouts + 1;
+		//Now we have the index of the item we want to replace. Let's do it.
+		//Need to update kickouts or kickouts_d accordingly.
+		if (dirty_array[max_age_index] == 1)
+		{
+			kickouts_d = kickouts_d + 1;
+
+			long long old_tag = tag_array[max_age_index];
+			old_tag = ((old_tag << index_bits) + max_age_index) << offset_bits; //now it's an old address!
+			write_item = old_tag;
+			write_dirty = dirty_array[max_age_index];
+
+		}
+		valid_array[max_age_index] = 1;//make a spot for the new entry
+		tag_array[max_age_index] = tag;
 		return 0;
 	}
 
@@ -866,18 +942,18 @@ void BasicCache::UpdateCache(unsigned long long address, int isWrite)
 {
 	unsigned long tag = (address >> (index_bits + offset_bits)); //Shift right to get the tag bits
 	//unsigned int index = (address << tag_bits) >> (tag_bits + offset_bits); //Shift left to get rid of the tag, shift right to get rid of offest bits
-	unsigned int index = (address >> offset_bits);
-	index = index << (32 - index_bits);
-	index = index >> (32 - index_bits);
+	unsigned int index = (address >> offset_bits) & index_mask;
+//	index = index << (32 - index_bits);
+//	index = index >> (32 - index_bits);
 	//Fully Associative
 	if (assoc == 0)
 	{
 		unsigned long fa_tag = (tag << (index_bits + offset_bits)) + index;
 
-		//Okay, so our thing is not in the cache. Is there an open space?
+		//Okay, update entry created by CheckCache
 		for (int i = 0; i < block_count; i++)
 		{
-			if (valid_array[i] == 0)
+			if ((valid_array[i] == 1) && (tag_array[i]))
 			{
 				valid_array[i] = 1;
 				tag_array[i] = fa_tag;
@@ -887,7 +963,7 @@ void BasicCache::UpdateCache(unsigned long long address, int isWrite)
 				return;
 			}
 		}
-
+/*
 		//If that didn't work, get the oldest item and replace it.
 		//Write that item to the write "buffer".
 
@@ -897,21 +973,22 @@ void BasicCache::UpdateCache(unsigned long long address, int isWrite)
 		if (dirty_array[oldest_item] == 1)
 		{
 			kickouts_d = kickouts_d + 1;
+		
+			long long old_tag = tag_array[oldest_item];
+			old_tag = old_tag << offset_bits; //reconstruct the address. mostly. this may not work right.
+			write_item = old_tag;
+			write_dirty = dirty_array[oldest_item];
+
 		}
 		else
 		{
 			kickouts = kickouts + 1;
 		}
-
-		long long old_tag = tag_array[oldest_item];
-		old_tag = old_tag << offset_bits; //reconstruct the address. mostly. this may not work right.
-		write_item = old_tag;
-		write_dirty = dirty_array[oldest_item];
-
 		tag_array[oldest_item] = fa_tag;
 		dirty_array[oldest_item] = isWrite; //moving a dirty item up to another spot
 		UpdateLRU(oldest_item); //I guess it's not the oldest anymore though
 		return;
+	*/
 	}
 
 	//DM
@@ -956,13 +1033,12 @@ void BasicCache::UpdateCache(unsigned long long address, int isWrite)
 	//X-way set-associative
 	if (assoc > 1)
 	{
-		index = index / assoc;
+		//index = index / assoc;
 
-		//It's not in the cache. We need to check the available spaces for an opening.
 		int index_local = index;
 		for (int i = 0; i < assoc; i++)
 		{
-			if (valid_array[index_local] == 0)
+			if ((valid_array[index_local] == 1) && (tag_array[index_local] == tag))
 			{
 				//An empty space! Alright!
 				UpdateLRU(index_local);
@@ -976,8 +1052,8 @@ void BasicCache::UpdateCache(unsigned long long address, int isWrite)
 				index_local = index_local + block_count / assoc;
 			}
 		}
-
-
+printf("shouldn't have happened\r\n");
+/*
 		//Shit. No openings, either. We need to compare the ages of the items in
 		//the spaces taken and kick one of those jerks out.
 		int max_age = -1;
@@ -1012,6 +1088,7 @@ void BasicCache::UpdateCache(unsigned long long address, int isWrite)
 		tag_array[max_age_index] = tag;
 		dirty_array[max_age_index] = isWrite;
 		UpdateLRU(max_age_index);
+*/
 		return;
 
 	}
@@ -1085,6 +1162,7 @@ unsigned long long BasicCache::Evict(BasicCache& input_cache, int real_evict)
 	{
 		if(valid_array[i] == 1)
 		{
+			invalidates++;
 			valid_array[i] = 0;
 			break;
 		}
@@ -1190,6 +1268,21 @@ BasicCache::~BasicCache()
 //Putting these down here so the important
 //stuff up there is easier to find.
 /////////////////////
+
+int CacheSystem::get_mem_ready()
+{
+	return mem_ready;
+}
+
+int CacheSystem::get_mem_chunktime()
+{
+	return mem_chunktime;
+}
+
+int CacheSystem::get_mem_chunksize()
+{
+	return mem_chunksize;
+}
 
 unsigned long CacheSystem::L1D_Hits()
 {

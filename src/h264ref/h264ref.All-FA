@@ -1,6 +1,6 @@
 L1_block_size 32	L2_block_size 64
-L1_cache_size 8192	L2_cache_size 65536
-L1_assoc 2		L2_assoc 1
+L1_cache_size 8192	L2_cache_size 32768
+L1_assoc 256		L2_assoc 512
 L1_hit_time 1		L2_hit_time 5
 L1_miss_time 1		L2_miss_time 7
 L2_transfer_time 5

@@ -1,10 +1,10 @@
 ------------------------------------------------------------
 	tr1.txt	Simulation Results
-	Start time: 2015-4-29 3:49:44
+	Start time: 2015-4-30 0:29:31
 ------------------------------------------------------------
-D-cache size = 8192 : ways = 1 : block size = 32
-I-cache size = 8192 : ways = 1 : block size = 32
-L2-cache size = 32768 : ways = 1 : block size = 64
+D-cache size = 8192 : ways = 2 : block size = 32
+I-cache size = 8192 : ways = 2 : block size = 32
+L2-cache size = 32768 : ways = 2 : block size = 64
 Execution Time = 564;	Total refs:10
 Flush Time = 0
 Inst refs = 6;	Data refs = 4
@@ -47,8 +47,8 @@ Memory Level: L2
 	Kickouts = 0;	Dirty Kickouts = 0;	Transfers = 3
 	Flush Kickouts = 0
 
-L1 Cache Cost (Icache $200) + (Dcache $200) = $400
-L2 Cache Cost = $50;	Memory Cost = $222	Total cost = $672
+L1 Cache Cost (Icache $400) + (Dcache $400) = $800
+L2 Cache Cost = $100;	Memory Cost = $222	Total cost = $1122
 Flushes = 0 :	Invalidates = 0
 
 ------------------------------------------------------------
@@ -56,16 +56,16 @@ Flushes = 0 :	Invalidates = 0
 Cache Final Contents - Index and Tag values are in HEX
 
 Memory Level:	L1I
-Index :	0 | V: 1	D:0	Tag:	3fc0e7112	|
-Index :	35 | V: 1	D:0	Tag:	3fc0e7110	|
+Index : 0	| V: 1	D:0	Tag:	7f81ce224	| V: 0	D:0	Tag:	0	|
+Index : 35	| V: 1	D:0	Tag:	7f81ce220	| V: 0	D:0	Tag:	0	|
 
 Memory Level:	L1D
-Index :	3e | V: 1	D:1	Tag:	3fffad424	|
+Index : 3e	| V: 1	D:1	Tag:	7fff5a848	| V: 0	D:0	Tag:	0	|
 
 Memory Level:	L2
-Index :	1a | V: 1	D:0	Tag:	ff039c44	|
-Index :	1f | V: 1	D:0	Tag:	fffeb509	|
-Index :	100 | V: 1	D:0	Tag:	ff039c44	|
+Index : 0	| V: 1	D:0	Tag:	1fe073889	| V: 0	D:0	Tag:	0	|
+Index : 1a	| V: 1	D:0	Tag:	1fe073888	| V: 0	D:0	Tag:	0	|
+Index : 1f	| V: 1	D:0	Tag:	1fffd6a12	| V: 0	D:0	Tag:	0	|
 
-End time: 2015-4-29 3:49:44
+End time: 2015-4-30 0:29:31
 Total run time: 0

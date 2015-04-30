@@ -25,6 +25,8 @@ int main (int argc, char ** argv)
 	int L2_miss_time = 7;
 	int L2_transfer_time = 5;
 	int L2_bus_width = 16;
+	int mem_chunksize = 8;
+
 
 	time_t now;
 
@@ -50,18 +52,19 @@ int main (int argc, char ** argv)
 		fscanf(config, "%s %d %s %d\n", str, &L1_miss_time, str, &L2_miss_time);
 		fscanf(config, "%s %d\n", str, &L2_transfer_time);
 		fscanf(config, "%s %d\n", str, &L2_bus_width);
+		fscanf(config, "%s %d\n", str, &mem_chunksize);
 	
 		fclose(config);
 	}
 
 	CacheSystem cache(L1_cache_size, L1_assoc, L1_block_size, L1_hit_time, L1_miss_time,
 			  L2_cache_size, L2_assoc, L2_block_size, L2_hit_time, L2_miss_time,
-			  L2_transfer_time, L2_bus_width); 
+			  L2_transfer_time, L2_bus_width, mem_chunksize); 
 
 	FILE * log = fopen(argv[1], "w+");//open up file to log results with name passed in
 	
 	fprintf(log,"------------------------------------------------------------\r\n");
-	fprintf(log,"\t%s\tSimulation Results\r\n", argv[1]);
+	fprintf(log,"\t%s\tSimulation Results\r\n", argv[2]);
 
 	time(&now);
 
@@ -72,17 +75,25 @@ int main (int argc, char ** argv)
 
 	fprintf(log,"------------------------------------------------------------\r\n");
 	
+	fprintf(log, "Memory System:\r\n");
+
 	fprintf(log,"D-cache size = %d : ways = %d : block size = %d\r\n", cache.L1D.getCacheSize(), cache.L1D.getAssoc(), cache.L1D.getBlockSize());
 	fprintf(log,"I-cache size = %d : ways = %d : block size = %d\r\n", cache.L1I.getCacheSize(), cache.L1I.getAssoc(), cache.L1I.getBlockSize());
 	fprintf(log,"L2-cache size = %d : ways = %d : block size = %d\r\n", cache.L2.getCacheSize(), cache.L2.getAssoc(), cache.L2.getBlockSize());
+	fprintf(log,"Memory ready time = %d : chunksize = %d : chunktime = %d \r\n",cache.get_mem_ready(), cache.get_mem_chunksize(), cache.get_mem_chunktime());
+	
 
 	char inst;
 	unsigned long long addr;
 	int numBytes;
 
-	unsigned int execTime = 0, Rcycle = 0, Wcycle = 0, Icycle = 0;
+	unsigned long long execTime = 0, Rcycle = 0, Wcycle = 0, Icycle = 0;
 
-	unsigned int Rrefs = 0, Wrefs = 0, Irefs = 0, Trefs = 0;
+	unsigned long long Rrefs = 0, Wrefs = 0, Irefs = 0, Trefs = 0;
+
+	FILE * dbug;
+
+	unsigned long long refs = 0;
 
 	while (scanf("%c %Lx %d\n", &inst, &addr, &numBytes) == 3)
 	{
@@ -91,12 +102,26 @@ int main (int argc, char ** argv)
 
 		n = cache.Execute(inst, addr, numBytes);
 
+		
+		if (refs > 10000000)
+		{
+			dbug = fopen("DBUG.txt", "a");
+			fprintf(dbug,"On reference %lld\r\n",execTime);
+			refs = 0;
+			fclose(dbug);
+		}
+		else
+		{
+			refs++;
+		}
+
+
 		if (n < 0)
 		{
 			printf("CacheSystem.Execute Error. Terminating simulation\r\n");
 			return -1;
 		}
-	
+
 		execTime += n;
 	}
 
@@ -117,7 +142,7 @@ int main (int argc, char ** argv)
 	/* Summary */
 
 	fprintf(log,"Execution Time = %d;\tTotal refs:%d\r\n", execTime, Trefs);
-	fprintf(log,"Flush Time = %d\r\n", 0);
+	fprintf(log,"Flush Time = %d\r\n", cache.flush_time);
 	fprintf(log,"Inst refs = %d;\tData refs = %d\r\n\r\n", Irefs, Wrefs);
 	
 	/* # of refs */
@@ -252,20 +277,29 @@ int main (int argc, char ** argv)
 		cache.GetL1Cost(), cache.GetL1Cost() * 2);
 	fprintf(log, "L2 Cache Cost = $%d;\tMemory Cost = $%d\tTotal cost = $%d\r\n",
 		cache.GetL2Cost(), cache.GetMMCost(), cache.GetL2Cost() + cache.GetMMCost() + (cache.GetL1Cost() * 2));
-	fprintf(log, "Flushes = %d :\tInvalidates = %d\r\n\r\n", 0, 0);//TODO: fill out
+	fprintf(log, "Flushes = %d :\tInvalidates = %d\r\n\r\n", cache.flush_count, cache.L1I.invalidates + cache.L1D.invalidates + cache.L2.invalidates);//TODO: fill out
 
 	fprintf(log,"------------------------------------------------------------\r\n\r\n");
 
 	fprintf(log, "Cache Final Contents - Index and Tag values are in HEX\r\n\r\n");
 	fprintf(log, "Memory Level:\tL1I\r\n");
 	
-	int i;
+	int i, j;
 	int n = pow(2, cache.L1I.getIndexBits());
+
+	int associativity = cache.L1I.getAssoc()?cache.L1I.getAssoc():cache.L1I.block_count;
+	
 	for (i = 0; i < n; i++)
 	{
-		if (cache.L1I.getValid(i))
+		if(cache.L1I.getValid(i))
 		{
-			fprintf(log, "Index :\t%x | V: 1\tD:%d\tTag:\t%llx\t|\r\n",i, cache.L1I.getDirty(i), cache.L1I.getTag(i)); 
+			fprintf(log, "Index : %x\t|",i);
+			for (j = i; j < cache.L1I.block_count; j += cache.L1I.block_count / associativity )
+			{
+					fprintf(log, " V: %d\tD:%d\tTag:\t%llx\t|",cache.L1I.getValid(j), cache.L1I.getDirty(j), cache.L1I.getTag(j)); 
+					if((j % 2) == 0) fprintf(log, "\r\n\t\t");
+			}
+			fprintf(log, "\r\n");
 		}
 	}
 	fprintf(log,"\r\n");
@@ -273,11 +307,20 @@ int main (int argc, char ** argv)
 	fprintf(log, "Memory Level:\tL1D\r\n");
 	
 	n = pow(2, cache.L1D.getIndexBits());
+
+	associativity = cache.L1D.getAssoc()?cache.L1D.getAssoc():cache.L1D.block_count;
+	
 	for (i = 0; i < n; i++)
 	{
-		if (cache.L1D.getValid(i))
+		if(cache.L1D.getValid(i))
 		{
-			fprintf(log, "Index :\t%x | V: 1\tD:%d\tTag:\t%llx\t|\r\n",i, cache.L1D.getDirty(i), cache.L1D.getTag(i)); 
+			fprintf(log, "Index : %x\t|",i);
+			for (j = i; j < cache.L1D.block_count; j += cache.L1D.block_count / associativity )
+			{
+					fprintf(log, " V: %d\tD:%d\tTag:\t%llx\t|",cache.L1D.getValid(j), cache.L1D.getDirty(j), cache.L1D.getTag(j)); 
+				if((j % 2) == 0) fprintf(log, "\r\n\t\t");
+			}
+			fprintf(log, "\r\n");
 		}
 	}
 	fprintf(log,"\r\n");
@@ -285,11 +328,20 @@ int main (int argc, char ** argv)
 	fprintf(log, "Memory Level:\tL2\r\n");
 	
 	n = pow(2, cache.L2.getIndexBits());
+
+	associativity = cache.L2.getAssoc()?cache.L2.getAssoc():cache.L2.block_count;
+	
 	for (i = 0; i < n; i++)
 	{
-		if (cache.L2.getValid(i))
+		if(cache.L2.getValid(i))
 		{
-			fprintf(log, "Index :\t%x | V: 1\tD:%d\tTag:\t%llx\t|\r\n",i, cache.L2.getDirty(i), cache.L2.getTag(i)); 
+			fprintf(log, "Index : %x\t|",i);
+			for (j = i; j < cache.L2.block_count; j += cache.L2.block_count / associativity )
+			{
+					fprintf(log, " V: %d\tD:%d\tTag:\t%llx\t|",cache.L2.getValid(j), cache.L2.getDirty(j), cache.L2.getTag(j)); 
+				if((j % 2) == 0) fprintf(log, "\r\n\t\t");
+			}
+			fprintf(log, "\r\n");
 		}
 	}
 	fprintf(log,"\r\n");

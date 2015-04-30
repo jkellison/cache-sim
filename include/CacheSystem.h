@@ -16,7 +16,7 @@ public:
 	unsigned long kickouts_d = 0;
 	unsigned long kickouts_flush = 0;
 	unsigned long transfers = 0;
-
+	unsigned long invalidates = 0;
 	int hit_time;
 	int miss_time;
 
@@ -25,6 +25,9 @@ public:
 
 	int block_size = 32;
 
+	int block_count;
+	
+	int cache_size = 8192;
 	int index_mask;
 
 	////////functions/////////
@@ -51,9 +54,7 @@ public:
 private:
 
 	////////variables/////////
-	int cache_size = 8192;
 	int assoc = 1;	//associativity
-	int block_count;
 	int bus_width;
 
 	//Tag and status bits
@@ -87,11 +88,12 @@ class CacheSystem
 		////////variables//////////
 		unsigned long flush_count = 0;
 
+		unsigned long long flush_time = 0;
 		////////functions/////////
 		CacheSystem(); //default constructor
 		CacheSystem(int L1_size, int L1_assoc_val, int L1_block_size_val, int L1_hit_time_val, int L1_miss_time_val,
                             int L2_size, int L2_assoc_val, int L2_block_size_val, int L2_hit_time_val, int L2_miss_time_val,
-			    int L2_transfer_time_val, int L2_bus_width_val);
+			    int L2_transfer_time_val, int L2_bus_width_val, int mem_chunksize);
 		
 		//~CacheSystem(); //destructor?
 
@@ -130,6 +132,9 @@ class CacheSystem
 		unsigned long L2_Kickouts_Flush();
 		unsigned long L2_Transfers();
 
+		int get_mem_ready();
+		int get_mem_chunktime();
+		int get_mem_chunksize();
 
 		BasicCache L1D;
 		BasicCache L1I;
@@ -147,16 +152,17 @@ class CacheSystem
 		int mem_chunktime = 15; //Time to send/recieve a single bus-width of data
 		int mem_chunksize = 8;	//Width of the bus interface to memory, in bytes
 
-		int instruction_count = 0;
+		unsigned long long instruction_count = 0;
 
-		int Rrefs = 0;
-		int Wrefs = 0;
-		int Irefs = 0;
+
+		unsigned long long Rrefs = 0;
+		unsigned long long Wrefs = 0;
+		unsigned long long Irefs = 0;
 		
 
-		int Rcycles = 0;
-		int Wcycles = 0;
-		int Icycles = 0;
+		unsigned long long Rcycles = 0;
+		unsigned long long Wcycles = 0;
+		unsigned long long Icycles = 0;
 
 		////////functions/////////
 		int Read(unsigned long long address, int numbytes);

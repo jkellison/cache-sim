@@ -1,11 +1,11 @@
 ------------------------------------------------------------
 	tr2.txt	Simulation Results
-	Start time: 2015-4-28 11:8:27
+	Start time: 2015-4-29 22:21:16
 ------------------------------------------------------------
-D-cache size = 8192 : ways = 1 : block size = 32
-I-cache size = 8192 : ways = 1 : block size = 32
-L2-cache size = 32768 : ways = 1 : block size = 64
-Execution Time = 970;	Total refs:25
+D-cache size = 8192 : ways = 2 : block size = 32
+I-cache size = 8192 : ways = 2 : block size = 32
+L2-cache size = 32768 : ways = 2 : block size = 64
+Execution Time = 787;	Total refs:25
 Flush Time = 0
 Inst refs = 17;	Data refs = 7
 
@@ -16,21 +16,21 @@ Inst. = 	17	[68.0%]
 Total = 	25
 
 Total cycles for activities: [Percentage]
-Reads = 	185	[19.1%]
-Writes = 	380	[39.2%]
-Inst. = 	405	[41.8%]
-Total = 	970
+Reads = 	185	[23.5%]
+Writes = 	213	[27.1%]
+Inst. = 	389	[49.4%]
+Total = 	787
 
 Average cycles per activity:
-	Read = 185.0;	Write = 54.3;	Inst. = 57.1
+	Read = 185.0;	Write = 30.4;	Inst. = 46.3
 	Ideal: Exec. Time = 42; CPI = 2.5
 	Ideal Mis-aligned: Exec. Time = 56; CPI = 3.3
 
 Memory Level: L1I
-	Hit Count = 20	Miss Count = 3
+	Hit Count = 21	Miss Count = 2
 	Total Requests = 23
-	Hit Rate = 87.0	Miss Rate = 13.0
-	Kickouts = 0;	Dirty Kickouts = 0;	Transfers = 3
+	Hit Rate = 91.3	Miss Rate = 8.7
+	Kickouts = 0;	Dirty Kickouts = 0;	Transfers = 2
 	Flush Kickouts = 0
 
 Memory Level: L1D
@@ -41,14 +41,14 @@ Memory Level: L1D
 	Flush Kickouts = 0
 
 Memory Level: L2
-	Hit Count = 1	Miss Count = 5
-	Total Requests = 6
-	Hit Rate = 16.7	Miss Rate = 83.3
-	Kickouts = 0;	Dirty Kickouts = 0;	Transfers = 5
+	Hit Count = 1	Miss Count = 4
+	Total Requests = 5
+	Hit Rate = 20.0	Miss Rate = 80.0
+	Kickouts = 0;	Dirty Kickouts = 0;	Transfers = 4
 	Flush Kickouts = 0
 
-L1 Cache Cost (Icache $200) + (Dcache $200) = $400
-L2 Cache Cost = $50;	Memory Cost = $222	Total cost = $672
+L1 Cache Cost (Icache $400) + (Dcache $400) = $800
+L2 Cache Cost = $100;	Memory Cost = $222	Total cost = $1122
 Flushes = 0 :	Invalidates = 0
 
 ------------------------------------------------------------
@@ -56,21 +56,17 @@ Flushes = 0 :	Invalidates = 0
 Cache Final Contents - Index and Tag values are in HEX
 
 Memory Level:	L1I
-Index :	0 | V: 1	D:0	Tag:	 fc0e7112	|
-Index :	1 | V: 1	D:0	Tag:	 fc0e7112	|
-Index :	35 | V: 1	D:0	Tag:	 fc0e7110	|
+Index :	0 | V: 1	D:0	Tag:	3fc0e71120	|
+Index :	2 | V: 1	D:0	Tag:	3fc0e71103	|
 
 Memory Level:	L1D
-Index :	3d | V: 1	D:1	Tag:	 fffad424	|
-Index :	3e | V: 1	D:1	Tag:	 fffad424	|
-Index :	dc | V: 1	D:0	Tag:	 fc0e7220	|
+Index :	6 | V: 1	D:1	Tag:	3fffad4243	|
+Index :	7 | V: 1	D:1	Tag:	3fffad4243	|
 
 Memory Level:	L2
-Index :	1a | V: 1	D:0	Tag:	 ff039c44	|
-Index :	1e | V: 1	D:0	Tag:	 fffeb509	|
-Index :	1f | V: 1	D:0	Tag:	 fffeb509	|
-Index :	6e | V: 1	D:0	Tag:	 ff039c88	|
-Index :	100 | V: 1	D:0	Tag:	 ff039c44	|
+Index :	0 | V: 1	D:0	Tag:	1fe0738890	|
+Index :	5 | V: 1	D:0	Tag:	1fe0738881	|
+Index :	7 | V: 1	D:0	Tag:	1fffd6a121	|
 
-End time: 2015-4-28 11:8:27
+End time: 2015-4-29 22:21:16
 Total run time: 0
